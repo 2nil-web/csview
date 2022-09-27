@@ -4,4 +4,4 @@
 *.err
 *.ico
 *~
-*.log
+#*.log
