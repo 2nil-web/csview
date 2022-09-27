@@ -52,7 +52,7 @@ LDFLAGS += -L /usr/local/lib64
 endif
 
 EXEXT=.exe
-#LDFLAGS += -mwindows
+LDFLAGS += -mwindows
 LDLIBS  +=  -lwsock32 -lws2_32
 
 $(call a2p,/C/Program Files \(x86\)/Inno Setup 6)

@@ -279,6 +279,12 @@ switch (uMessage)
       //initialize the TreeView control
       InitListView(hwndListView);
       
+      // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
+      // get<0>=row, get<1> = text.size, get<2> = pixel width
+      for(size_t i=0; i < widestCol.size(); i++) {
+        std::cout << "Widest cell for column " << i << " is at row " << get<0>(widestCol[i]) << " with character size of " << get<1>(widestCol[i]) << " and pixels size of " << get<2>(widestCol[i]) << std::endl;
+        ListView_SetColumnWidth(hwndListView, i,  20+get<2>(widestCol[i]));
+      }
       break;
 
    case WM_NOTIFY:
@@ -286,12 +292,6 @@ switch (uMessage)
    
    case WM_SIZE:
       ResizeListView(hwndListView, hWnd);
-      // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
-      // get<0>=row, get<1> = text.size, get<2> = pixel width
-      for(size_t i=0; i < widestCol.size(); i++) {
-        std::cout << "Widest cell for column " << i << " is at row " << get<0>(widestCol[i]) << " with character size of " << get<1>(widestCol[i]) << " and pixels size of " << get<2>(widestCol[i]) << std::endl;
-        ListView_SetColumnWidth(hwndListView, i,  20+get<2>(widestCol[i]));
-      }
       std::cout << "WM_SIZE" << std::endl;
       break;
 
