@@ -84,7 +84,13 @@ LD=g++
 
 TARGETS+=${PREFIX}${EXEXT}
 
-all : ${TARGETS}
+all : ${TARGETS} mywc mytail
+
+mywc : mywc.cpp
+	${CXX} -Wall -Wextra -std=c++20 -pedantic mywc.cpp  -o mywc
+
+mytail : mytail.cpp
+	${CXX} -Wall -Wextra -std=c++20 -pedantic mytail.cpp  -o mytail
 
 ${PREFIX}${EXEXT} : ${OBJS}
 
@@ -105,7 +111,7 @@ clean :
 	rm -f *~ *.o $(OBJS) ${PREFIX}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico
+	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe
 
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)

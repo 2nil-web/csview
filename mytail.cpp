@@ -32,8 +32,8 @@ int main(int argc, char *argv[]) {
   prog_basename=std::filesystem::path(args[0]).stem().string();
   args.erase(args.begin());
 
-  if (args.size() == 1) tail(args[1], 10); 
-  if (args.size() >= 2) tail(args[1], std::stoi(args[0])); 
+  if (args.size() == 1) tail(args[0], 10); 
+  if (args.size() > 1) tail(args[1], std::stoi(args[0])); 
   return 0;
 }
 
