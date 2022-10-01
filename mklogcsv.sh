@@ -18,5 +18,5 @@ mkCsv() {
   done
 }
 
-mkCsv $1 $2 $3
+mkLogCsv $1 $2
 
