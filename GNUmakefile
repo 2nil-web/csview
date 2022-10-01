@@ -16,7 +16,7 @@ LDFLAGS  +=  -L $(WSDIR)/lib
 LDFLAGS  += -g -Os
 LDLIBS   +=  -lws
 
-PREFIX=VListVw
+PREFIX=wintail
 SRCS=${PREFIX}.cpp
 OBJS=$(SRCS:.cpp=.o)
 
