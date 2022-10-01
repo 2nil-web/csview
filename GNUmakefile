@@ -66,6 +66,7 @@ UPX=upx
 OBJS += ${PREFIX}_res.o
 
 ECHO=echo -e
+TARGETS+=${PREFIX}${EXEXT}
 else
 CPPFLAGS += -I /usr/local/include/wsserver
 #LDFLAGS += -L /usr/local/lib64
@@ -80,17 +81,16 @@ endif
 STRIP=strip
 GDB=gdb
 LD=g++
+TARGETS +=  mywc${EXEXT} mytail${EXEXT}
 
 
-TARGETS+=${PREFIX}${EXEXT}
+all : ${TARGETS}
 
-all : ${TARGETS} mywc mytail
+mywc${EXEXT} : mywc.cpp
+	${CXX} ${CXXFLAGS} mywc.cpp  -o mywc
 
-mywc : mywc.cpp
-	${CXX} -Wall -Wextra -std=c++20 -pedantic mywc.cpp  -o mywc
-
-mytail : mytail.cpp
-	${CXX} -Wall -Wextra -std=c++20 -pedantic mytail.cpp  -o mytail
+mytail${EXEXT} : mytail.cpp
+	${CXX} ${CXXFLAGS} mytail.cpp  -o mytail
 
 ${PREFIX}${EXEXT} : ${OBJS}
 
