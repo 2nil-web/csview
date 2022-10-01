@@ -54,15 +54,15 @@ mktestlog () {
   mkLogCsv ${nl} $1 >>$logname
 }
 
-#if false; then
+if false; then
   mktestlog   0
   mktestlog   8
   mktestlog  16
   mktestlog  32
   mktestlog  64
   mktestlog 128
+fi
   mktestlog 256
-#fi
 
 for i in test_${nl}x???.log; do
 	./mywc "$i" > test_res.txt
