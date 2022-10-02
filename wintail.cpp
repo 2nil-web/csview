@@ -321,24 +321,24 @@ HWND CreateListView(HINSTANCE /*hInstance*/ , HWND hwndParent) {
   return hwndListView;
 }
 
-BOOL DoContextMenu(HWND hWnd,
-  WPARAM wParam,
-  LPARAM lParam) {
+BOOL DoContextMenu(HWND hWnd, WPARAM wParam, LPARAM lParam) {
   HWND hwndListView=(HWND) wParam;
-  HMENU hMenuLoad,
-  hMenu;
+  HMENU hMenuLoad, hMenu;
 
   if (hwndListView != GetDlgItem(hWnd, ID_LISTVIEW)) return FALSE;
   hMenuLoad=LoadMenu(g_hInst, MAKEINTRESOURCE(IDM_CONTEXT_MENU));
   hMenu=GetSubMenu(hMenuLoad, 0);
 
-  TrackPopupMenu(hMenu,
-    TPM_LEFTALIGN | TPM_RIGHTBUTTON,
-    LOWORD(lParam), HIWORD(lParam),
-    0, hWnd, NULL);
-
+  if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) & MF_CHECKED) {
+    CheckMenuItem(hMenu, IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
+    EnableMenuItem(hMenu, IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+  } else {
+    CheckMenuItem(hMenu, IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
+    EnableMenuItem(hMenu, IDM_REFR, MF_BYCOMMAND | MF_ENABLED);
+  }
+  
+  TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON, LOWORD(lParam), HIWORD(lParam), 0, hWnd, NULL);
   DestroyMenu(hMenuLoad);
-
   return TRUE;
 }
 
@@ -354,8 +354,17 @@ void ListViewToBottom( HWND hwnd) {
   SetFocus(hwnd);
 }
 
+HWND hwndListView;
+DWORD WINAPI RefreshFile(LPVOID data) {
+  HWND hwnd=(HWND)data;
+  HMENU hMenu=GetMenu(hwnd);
+  bool aref=GetMenuState(hMenu, IDM_AREF, MF_BYCOMMAND) & MF_CHECKED;
+  EnableMenuItem(hMenu, IDM_AREF, MF_BYCOMMAND | MF_DISABLED);
+  EnableMenuItem(hMenu, IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+}
+
+
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
-  static HWND hwndListView;
 
   switch (uMessage) {
   case WM_CREATE:
@@ -388,13 +397,28 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 
   case WM_COMMAND:
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+    case IDM_REFR: {
+      //PMYDATA pData;
+      DWORD   dwThreadId;
+      HANDLE  hThread;
+
+//      hThread=CreateThread(NULL, 0, RefreshFile, NULL, (LPVOID)&hWnd, 0, &dwThreadId);
+      
+      if (hThread == NULL) {
+        std::cerr << "Error CreateThread\n";
+        return false;
+      }
+
+      WaitForSingleObject(hThread, 0);
+
+      break;
+    }
+
     case IDM_AREF:
       if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) & MF_CHECKED) {
-        std::cout << "uck aref" << std::endl;
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_ENABLED);
       } else {
-        std::cout << "ck aref" << std::endl;
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
       }

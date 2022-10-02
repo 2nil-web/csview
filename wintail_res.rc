@@ -30,6 +30,8 @@ BEGIN
         MENUITEM "&Auto-refresh",  IDM_AREF
         MENUITEM SEPARATOR
         MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",          IDM_EXIT
     END
 END
 
@@ -40,7 +42,7 @@ CAPTION "About wintail"
 FONT 8, "MS Sans Serif"
 BEGIN
     CTEXT           "Wintail",-1,0,5,144,8
-    CTEXT           "The windows GUI tail equivalent",-1,0,20,144,8
+    CTEXT           "The windows GUI tail for CSV files",-1,0,20,144,8
     CTEXT           "(More or less)",-1,0,34,144,8
     DEFPUSHBUTTON   "OK",IDOK,53,59,32,14,WS_GROUP
 END
