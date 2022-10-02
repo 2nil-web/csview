@@ -206,15 +206,19 @@ LRESULT ListViewNotify(HWND /*hWnd*/ , LPARAM lParam) {
 }
 
 unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
-  std::ifstream fp(fname);
-  std::string ln, cell;
-  std::vector < std::string > row;
-  unsigned int count=0;
-
+  std::cout << "Starting to load in memory of the file " << fname << std::endl;
+  // nuplet pour évaluer la largeur de chaque colonne
   // Le 1er nuplet (tuple) c'est pour la largeur de la 1ére colonne qui indique le numéro de ligne ...
   g_widestCol.push_back(std::make_tuple(0, 0, 0));
 
+  unsigned int count=0;
+  std::ifstream fp(fname);
+
   if (fp.is_open()) {
+    std::string ln, cell;
+    std::vector < std::string > row;
+    RECT rc;
+
     while (std::getline(fp, ln)) {
       std::stringstream ss(ln);
       row.clear();
@@ -231,6 +235,9 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
         row.push_back(cell);
 
         if (count > 0) {
+          ListView_GetItemRect(hwnd, count, &rc, LVIR_BOUNDS);
+          //std::cout << "Pos " << count << "=(" << rc.left << ',' << rc.top << ',' << rc.right << ',' << rc.bottom << ')' << std::endl;
+
           if (g_widestCol.size() < iPos) g_widestCol.push_back(std::make_tuple(count, cell.size(), ListView_GetStringWidth(hwnd, cell.c_str())));
           else {
             lvgsw=ListView_GetStringWidth(hwnd, cell.c_str());
@@ -249,6 +256,7 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
     fp.close();
   }
 
+  std::cout << "End of the loading in memory of the file " << fname << std::endl;
   return count;
 }
 
@@ -410,6 +418,15 @@ BOOL DoContextMenu(HWND hWnd,
   return TRUE;
 }
 
+void ListViewToBottom( HWND hwnd) {
+  int yMin, yMax;
+  GetScrollRange(hwnd, SB_VERT, &yMin, &yMax);
+  RECT rc;
+  ListView_GetItemRect(hwnd, yMax, &rc, LVIR_SELECTBOUNDS);
+  std::cout << "Go to bottom=" << yMax << ", rect (" << rc.left << ',' << rc.top << ',' << rc.right << ',' << rc.bottom << ')' << std::endl;
+  ListView_Scroll(hwnd, 0, rc.top);
+}
+
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
   static HWND hwndListView;
 
@@ -431,6 +448,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
       ListView_SetColumnWidth(hwndListView, i, 20+get < 2 > (g_widestCol[i]));
     }
     std::cout << std::endl;
+    ListViewToBottom(hwndListView);
     break;
 
   case WM_NOTIFY:
@@ -478,7 +496,7 @@ BOOL InitApplication(HINSTANCE hInstance) {
 
   wcex.cbSize=sizeof(WNDCLASSEX);
   wcex.style=0;
-  wcex.lpfnWndProc=(WNDPROC) MainWndProc;
+  wcex.lpfnWndProc=(WNDPROC)MainWndProc;
   wcex.cbClsExtra=0;
   wcex.cbWndExtra=0;
   wcex.hInstance=hInstance;
@@ -487,11 +505,12 @@ BOOL InitApplication(HINSTANCE hInstance) {
   wcex.lpszMenuName=MAKEINTRESOURCE(IDM_MAIN_MENU);
   wcex.lpszClassName=g_szClassName;
   wcex.hIcon=LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_MAINICON));
-  wcex.hIconSm=(HICON) LoadImage(g_hInst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, 16, 16, 0);
+  wcex.hIconSm=(HICON)LoadImage(g_hInst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, 16, 16, 0);
 
   aReturn=RegisterClassEx( & wcex);
 
-  if (0 == aReturn) {
+  if (aReturn == 0) {
+    std::cout << "aRet = 0 !!" << std::endl;
     WNDCLASS wc;
 
     wc.style=0;
@@ -512,17 +531,17 @@ BOOL InitApplication(HINSTANCE hInstance) {
 }
 
 int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow) {
+  g_hInst=hInstance;
   if (!hPrevInstance && !InitApplication(hInstance)) return FALSE;
 
   MSG msg;
-  g_hInst=hInstance;
   std::vector<std::string> args=cmdLineToSVec();
 
   if (args.size() > 1) g_filename=args[1];
   if (args.size() > 2) g_separator=args[2][0];
 
   // Required to use the common controls (not so sure as of 2022)
-  //InitCommonControls();
+  InitCommonControls();
   if (!InitInstance(hInstance, nCmdShow)) return FALSE;
 
   // Acquire and dispatch messages
