@@ -318,6 +318,7 @@ BOOL InitListView(HWND hwndListView) {
   }
 
   InsertListViewItems(hwndListView);
+  ListView_SetExtendedListViewStyle(hwndListView, LVS_EX_FULLROWSELECT); // Set style
   return TRUE;
 }
 
@@ -362,36 +363,9 @@ HWND CreateListView(HINSTANCE /*hInstance*/ , HWND hwndParent) {
 }
 
 void UpdateMenu(HWND hwndListView, HMENU hMenu) {
-  UINT uID=IDM_LIST;
-  DWORD dwStyle;
-
-  // Uncheck all
-  CheckMenuItem(hMenu, IDM_LARGE_ICONS, MF_BYCOMMAND | MF_UNCHECKED);
-  CheckMenuItem(hMenu, IDM_SMALL_ICONS, MF_BYCOMMAND | MF_UNCHECKED);
-  CheckMenuItem(hMenu, IDM_LIST, MF_BYCOMMAND | MF_UNCHECKED);
-  CheckMenuItem(hMenu, IDM_REPORT, MF_BYCOMMAND | MF_UNCHECKED);
-
-  // Check the appropriate view menu item
-  dwStyle=GetWindowLong(hwndListView, GWL_STYLE);
-  switch (dwStyle & LVS_TYPEMASK) {
-  case LVS_ICON:
-    uID=IDM_LARGE_ICONS;
-    break;
-
-  case LVS_SMALLICON:
-    uID=IDM_SMALL_ICONS;
-    break;
-
-  case LVS_LIST:
-    uID=IDM_LIST;
-    break;
-
-  case LVS_REPORT:
-    uID=IDM_REPORT;
-    break;
-  }
-
-  CheckMenuRadioItem(hMenu, IDM_LARGE_ICONS, IDM_REPORT, uID, MF_BYCOMMAND | MF_CHECKED);
+  // Uncheck auto-refresh and enable manual refresh by default
+  CheckMenuItem(hMenu, IDM_AREF, MF_UNCHECKED);
+  EnableMenuItem(hMenu, IDM_REFR, MF_ENABLED);
 }
 
 BOOL DoContextMenu(HWND hWnd,
@@ -425,6 +399,9 @@ void ListViewToBottom( HWND hwnd) {
   ListView_GetItemRect(hwnd, yMax, &rc, LVIR_SELECTBOUNDS);
   std::cout << "Go to bottom=" << yMax << ", rect (" << rc.left << ',' << rc.top << ',' << rc.right << ',' << rc.bottom << ')' << std::endl;
   ListView_Scroll(hwnd, 0, rc.top);
+  ListView_SetItemState(hwnd, yMax, LVIS_SELECTED, LVIS_SELECTED);
+  ListView_SetItemState(hwnd, yMax, LVIS_FOCUSED, LVIS_FOCUSED);
+  SetFocus(hwnd);
 }
 
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
@@ -463,12 +440,23 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
     break;
 
   case WM_CONTEXTMENU:
-    if (DoContextMenu(hWnd, wParam, lParam))
-      return FALSE;
+    if (DoContextMenu(hWnd, wParam, lParam)) return FALSE;
     break;
 
   case WM_COMMAND:
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+    case IDM_AREF:
+      if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) == MF_CHECKED) {
+        std::cout << "uck aref" << std::endl;
+        CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
+        EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_ENABLED);
+      } else {
+        std::cout << "ck aref" << std::endl;
+        CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
+        EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+      }
+
+      break;
     case IDM_EXIT:
       DestroyWindow(hWnd);
       break;

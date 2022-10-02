@@ -9,17 +9,13 @@ IDM_MAIN_MENU MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "&Refresh",       IDM_REFR
+        MENUITEM "&Auto-refresh",  IDM_AREF
         MENUITEM SEPARATOR
-        MENUITEM "E&xit",                       IDM_EXIT
+        MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",          IDM_EXIT
     END
-    /*
-    POPUP "&View"
-    BEGIN
-        MENUITEM "&Large Icons",                IDM_LARGE_ICONS
-        MENUITEM "&Small Icons",                IDM_SMALL_ICONS
-        MENUITEM "&List",                       IDM_LIST
-        MENUITEM "&Details",                    IDM_REPORT
-    END*/
     POPUP "&Help"
     BEGIN
         MENUITEM "&About Controls...",          IDM_ABOUT
@@ -30,10 +26,10 @@ IDM_CONTEXT_MENU MENU DISCARDABLE
 BEGIN
     POPUP "Context Menu"
     BEGIN
-        MENUITEM "&Large Icons",                IDM_LARGE_ICONS
-        MENUITEM "&Small Icons",                IDM_SMALL_ICONS
-        MENUITEM "&List",                       IDM_LIST
-        MENUITEM "&Details",                    IDM_REPORT
+        MENUITEM "&Refresh",       IDM_REFR
+        MENUITEM "&Auto-refresh",  IDM_AREF
+        MENUITEM SEPARATOR
+        MENUITEM "&Search/Filter", IDM_SEFI
     END
 END
 
