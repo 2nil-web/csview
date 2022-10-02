@@ -260,34 +260,6 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
   return count;
 }
 
-void PositionHeader(HWND hwndListView) {
-  HWND hwndHeader=GetWindow(hwndListView, GW_CHILD);
-  DWORD dwStyle=GetWindowLong(hwndListView, GWL_STYLE);
-
-  // To ensure that the first item will be visible, create the control without the LVS_NOSCROLL style and then add it here
-  dwStyle |= LVS_NOSCROLL;
-  SetWindowLong(hwndListView, GWL_STYLE, dwStyle);
-
-  // Only do this if we are in report view and were able to get the g_header hWnd
-  if (((dwStyle & LVS_TYPEMASK) == LVS_REPORT) && hwndHeader) {
-    RECT rc;
-    HD_LAYOUT hdLayout;
-    WINDOWPOS wpos;
-
-    GetClientRect(hwndListView, & rc);
-    hdLayout.prc=& rc;
-    hdLayout.pwpos=& wpos;
-
-    Header_Layout(hwndHeader, & hdLayout);
-
-    SetWindowPos(hwndHeader, wpos.hwndInsertAfter,
-      wpos.x, wpos.y, wpos.cx, wpos.cy,
-      wpos.flags | SWP_SHOWWINDOW);
-
-    ListView_EnsureVisible(hwndListView, 0, FALSE);
-  }
-}
-
 BOOL InsertListViewItems(HWND hwndListView) {
   //empty the list
   ListView_DeleteAllItems(hwndListView);
@@ -324,26 +296,15 @@ BOOL InitListView(HWND hwndListView) {
 
 void ResizeListView(HWND hwndListView, HWND hwndParent) {
   RECT rc;
-  GetClientRect(hwndParent, & rc);
+  GetClientRect(hwndParent, &rc);
   MoveWindow(hwndListView, rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top, TRUE);
-  //only call this if we want the LVS_NOSCROLL style
-  //PositionHeader(hwndListView);
 }
 
 HWND CreateListView(HINSTANCE /*hInstance*/ , HWND hwndParent) {
   DWORD dwStyle;
   HWND hwndListView;
-  //HIMAGELIST  himlSmall;
-  //HIMAGELIST  himlLarge;
-  //BOOL        bSuccess=TRUE;
 
-  dwStyle=WS_TABSTOP |
-    WS_CHILD |
-    WS_BORDER |
-    WS_VISIBLE |
-    LVS_AUTOARRANGE |
-    LVS_REPORT |
-    LVS_OWNERDATA;
+  dwStyle=WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_OWNERDATA;
 
   hwndListView=CreateWindowEx(WS_EX_CLIENTEDGE, // ex style
     WC_LISTVIEW, // class name-defined in commctrl.h
@@ -356,16 +317,8 @@ HWND CreateListView(HINSTANCE /*hInstance*/ , HWND hwndParent) {
     NULL); // no extra data
 
   if (!hwndListView) return NULL;
-
   ResizeListView(hwndListView, hwndParent);
-
   return hwndListView;
-}
-
-void UpdateMenu(HWND hwndListView, HMENU hMenu) {
-  // Uncheck auto-refresh and enable manual refresh by default
-  CheckMenuItem(hMenu, IDM_AREF, MF_UNCHECKED);
-  EnableMenuItem(hMenu, IDM_REFR, MF_ENABLED);
 }
 
 BOOL DoContextMenu(HWND hWnd,
@@ -375,12 +328,9 @@ BOOL DoContextMenu(HWND hWnd,
   HMENU hMenuLoad,
   hMenu;
 
-  if (hwndListView != GetDlgItem(hWnd, ID_LISTVIEW))
-    return FALSE;
-
+  if (hwndListView != GetDlgItem(hWnd, ID_LISTVIEW)) return FALSE;
   hMenuLoad=LoadMenu(g_hInst, MAKEINTRESOURCE(IDM_CONTEXT_MENU));
   hMenu=GetSubMenu(hMenuLoad, 0);
-  UpdateMenu(hwndListView, hMenu);
 
   TrackPopupMenu(hMenu,
     TPM_LEFTALIGN | TPM_RIGHTBUTTON,
@@ -411,12 +361,9 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
   case WM_CREATE:
     // create the TreeView control
     hwndListView=CreateListView(g_hInst, hWnd);
-
     readCsv(g_filename, g_separator, hwndListView);
-
     //initialize the TreeView control
     InitListView(hwndListView);
-
     // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
     // get<0>=row, get<1>=text.size, get<2>=pixel width
     std::cout << "Widest cells for:";
@@ -435,10 +382,6 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
     ResizeListView(hwndListView, hWnd);
     break;
 
-  case WM_INITMENUPOPUP:
-    UpdateMenu(hwndListView, GetMenu(hWnd));
-    break;
-
   case WM_CONTEXTMENU:
     if (DoContextMenu(hWnd, wParam, lParam)) return FALSE;
     break;
@@ -446,7 +389,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
   case WM_COMMAND:
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
     case IDM_AREF:
-      if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) == MF_CHECKED) {
+      if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) & MF_CHECKED) {
         std::cout << "uck aref" << std::endl;
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_ENABLED);

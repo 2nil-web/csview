@@ -62,7 +62,7 @@ if false; then
   mktestlog  64
   mktestlog 128
 fi
-  mktestlog 64
+  mktestlog 256
 
 for i in test_${nl}x???.log; do
 	./mywc "$i" > test_res.txt

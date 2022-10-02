@@ -12,10 +12,5 @@
 #define IDM_SEFI                        106
 #define IDM_EXIT                        100
 
-#define IDM_LARGE_ICONS                 200
-#define IDM_SMALL_ICONS                 201
-#define IDM_LIST                        202
-#define IDM_REPORT                      203
-
 #define IDM_ABOUT                       110
 
