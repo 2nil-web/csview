@@ -21,8 +21,13 @@ mkCsv() {
 }
 
 random_date () {
-  shuf -n6 -i$(date -d '2020-01-01' '+%s')-$(date '+%s') | xargs -I{} date -d '@{}' '+%Y-%m-%dT%H:%M:%S%z'
+  shuf -n1 -i$(date -d '2020-01-01' '+%s')-$(date '+%s') | xargs -I{} date -d '@{}' '+%Y-%m-%dT%H:%M:%S%z'
 }
+
+random_log_level () {
+  shuf -n1 -e TRACE DEBUG INFO WARN ERROR FATAL
+}
+
 
 mkLine () {
   col=""
@@ -32,8 +37,6 @@ mkLine () {
   echo $col
 }
 
-ts=$(mkLine 19)
-ll=$(mkLine 5)
 fn=$(mkLine 32)
 ln=$(mkLine 5)
 
@@ -43,17 +46,19 @@ mkLogCsv () {
   [ $# -ge 3 ] && sep=$3 || sep=';'
 
   echo "TimeStamp;Log level;File;Line;Message"
-  ms=$(mkLine $nch)
-  row="${ts}${sep}${ll}${sep}${fn}${sep}${ln}${sep}${ms}${sep}"
 
   for ((r=0; r < nro; r++)); do
-    echo $row
+    ts=$(random_date)
+    ll=$(random_log_level)
+    ms=$(mkLine $nch)
+    echo "${ts}${sep}${ll}${sep}${fn}${sep}${ln}${sep}${ms}${sep}"
   done
 }
 
-nl=100000
+nl=1000
 mktestlog () {
   printf -v logname "test_${nl}x%03d.log" $1
+  rm -f $logname
   echo "Creating file $logname"
   mkLogCsv ${nl} $1 >>$logname
 }
@@ -68,10 +73,12 @@ if false; then
 fi
   mktestlog 256
 
+  if false; then
 for i in test_${nl}x???.log; do
 	./mywc "$i" > test_res.txt
 	/usr/bin/time -pao test_res.txt ./mytail 0 "$i"
 done
+  fi
 
 
 cat test_res.txt
