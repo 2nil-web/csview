@@ -47,10 +47,11 @@ mkLogCsv () {
 
   echo "TimeStamp;Log level;File;Line;Message"
 
+  ms=$(mkLine $nch)
+
   for ((r=0; r < nro; r++)); do
     ts=$(random_date)
     ll=$(random_log_level)
-    ms=$(mkLine $nch)
     echo "${ts}${sep}${ll}${sep}${fn}${sep}${ln}${sep}${ms}${sep}"
   done
 }
@@ -58,7 +59,7 @@ mkLogCsv () {
 nl=1000
 mktestlog () {
   printf -v logname "test_${nl}x%03d.log" $1
-  rm -f $logname
+  #rm -f $logname
   echo "Creating file $logname"
   mkLogCsv ${nl} $1 >>$logname
 }
