@@ -20,6 +20,10 @@ mkCsv() {
   done
 }
 
+random_date () {
+  shuf -n6 -i$(date -d '2020-01-01' '+%s')-$(date '+%s') | xargs -I{} date -d '@{}' '+%Y-%m-%dT%H:%M:%S%z'
+}
+
 mkLine () {
   col=""
   for ((n=0; n < $1; n++))
