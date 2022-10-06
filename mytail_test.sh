@@ -71,8 +71,8 @@ if false; then
   mktestlog  32
   mktestlog  64
   mktestlog 128
-fi
   mktestlog 256
+fi
 
   if false; then
 for i in test_${nl}x???.log; do
@@ -82,5 +82,18 @@ done
   fi
 
 
-cat test_res.txt
+#cat test_res.txt
+
+
+
+let ts_min=$(date -d '2020-01-01' '+%s')
+let ts_max=$(date '+%s')
+let delta=(($ts_max-$ts_min)
+echo "ts min=$ts_min, ts max=$ts_max, delta=$delta"
+
+for i in {1..10}; do
+  ts=$(($(date -d '2020-01-01' '+%s') + 1 + $RANDOM % $ts_max))
+  dt=$(date -d "@$ts" '+%Y-%m-%dT%H:%M:%S%z')
+  echo "$ts == $dt"
+done
 
