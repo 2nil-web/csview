@@ -71,8 +71,8 @@ if false; then
   mktestlog  32
   mktestlog  64
   mktestlog 128
-  mktestlog 256
 fi
+  mktestlog 256
 
   if false; then
 for i in test_${nl}x???.log; do
