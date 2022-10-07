@@ -71,8 +71,8 @@ if false; then
   mktestlog  32
   mktestlog  64
   mktestlog 128
-  mktestlog 256
 fi
+  mktestlog 256
 
   if false; then
 for i in test_${nl}x???.log; do
@@ -80,10 +80,6 @@ for i in test_${nl}x???.log; do
 	/usr/bin/time -pao test_res.txt ./mytail 0 "$i"
 done
   fi
-
-
-#cat test_res.txt
-
 
 
 let ts_min=$(date -d '2020-01-01' '+%s')
@@ -96,4 +92,6 @@ for i in {1..10}; do
   dt=$(date -d "@$ts" '+%Y-%m-%dT%H:%M:%S%z')
   echo "$ts == $dt"
 done
+=======
+cat test_res.txt
 
