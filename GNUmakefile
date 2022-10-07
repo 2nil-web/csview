@@ -9,6 +9,7 @@ endef
 WSDIR=/usr/local/wsserver
 #CPPFLAGS += -U VERBOSE_MODE
 CPPFLAGS += -I $(WSDIR)/include -I $(WSDIR)/include/wsserver
+CFLAGS += -Wall -Wextra -std=c18 -pedantic
 CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 #LDFLAGS += -static-libgcc -static-libstdc++
 LDFLAGS  += -static
@@ -45,7 +46,7 @@ CC=clang++
 CXX=clang++
 LDFLAGS += -pthread -static
 else
-CC=g++
+CC=gcc
 CXX=g++
 CPPFLAGS += -I /usr/local/include/wsserver
 LDFLAGS += -L /usr/local/lib64

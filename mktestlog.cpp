@@ -67,19 +67,19 @@ bool iso_to_time_t(std::string s, time_t& utc_time, bool strict_checking=false) 
     t.tm_min=std::stoi(s.substr(14, 2));
     t.tm_sec=std::stoi(s.substr(17, 2));
 
-    t.tm_wday=0;
-    t.tm_yday=0;
+    //t.tm_wday=0;
+    //t.tm_yday=0;
     t.tm_isdst=-1;
 
     utc_time=mktime(&t);
 
     // XXXX.XX.XX.XX.XX.XXZ GMT/UTC time representation
-    if (s.size() >= 20 && s[19] == 'Z') utc_time=utc_time;
+    if (s.size() >= 20 && s[19] == 'Z') utc_time=utc_time+timezone;
     else {
       // XXXX.XX.XX.XX.XX.XX-XXXX or XXXX.XX.XX.XX.XX.XXZ+XXXX local time representation
       time_t shift_hour=0, shift_min=0;
 
-      if (s.size() >= 25 && s[19] == 'Z') {
+      if (s.size() >= 25) {
         shift_hour=std::stoi(s.substr(22, 2));
         shift_min=std::stoi(s.substr(24, 2));
 
@@ -94,7 +94,8 @@ bool iso_to_time_t(std::string s, time_t& utc_time, bool strict_checking=false) 
     }
   } else return false;
 
-  std::cout << timezone << ' ' << t.tm_year << ' ' << t.tm_mon << ' ' << t.tm_mday << ' ' << t.tm_hour << ' ' << t.tm_min << ' ' << t.tm_sec << ' ' << shift_dir << std::endl;
+  std::cout << "year " << t.tm_year << ", mon " << t.tm_mon << ", mday " << t.tm_mday << ", time " << t.tm_hour << 'h' << t.tm_min << 'm' << t.tm_sec << "s, shift " << shift_dir << " ==> " << utc_time << std::endl;
+
   if (strict_checking) {
     if (s.size() >= 20 && s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':') {
       if (s.size() == 20 && s[19] == 'Z') return true;
