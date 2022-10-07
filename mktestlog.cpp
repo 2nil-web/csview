@@ -27,11 +27,10 @@ void print_time_t(std::time_t t, std::string time_format="%Y-%m-%dT%H:%M:%S") {
   std::cout << std::put_time(std::localtime(&t), time_format.c_str()) << " comes from time_t value " << t << '.' << std::endl;
 }
 
-
 // In bash:
 // * To get a specific time_t : date -d 2020-01-01T00:00:00 +%s ==> 1577833200
 // * To get time_t for now    : date +%s ==> ...
-// * As of 2020-10-10 epoch is 1970-01-01T00:00:00Z in UTC form, which can be checked with the followig command : date -d 1970-01-01T00:00:00Z +%s
+// * As of 2020-10-10 epoch is 1970-01-01T00:00:00Z in GMT form, which can be checked with the followig command : date -d 1970-01-01T00:00:00Z +%s
 // In c++:
 //  std::time_t max_time_t=std::numeric_limits<time_t>::max();
 //
@@ -43,63 +42,58 @@ std::time_t generate_time_t() {
   return 0;
 }
 
-/*
-time_t iso_to_time_t(std::string s) {
-  struct tm t;
-  strptime(s.c_str(), "%Y-%m-%dT%H:%M:%S", &t);
-  return mktime(&t);
-}  
-*/
-// Convert an iso8601 compatible string to time_t which the number of second away from an epoch
+// Convert an iso8601 compatible string to a time_t value which is the number of second away from an epoch
 // The string must, at least be of the form XXXX.XX.XX.XX.XX.XX where X is a digit and . is anything
-// If strict_checking is true then the strict conformance to the iso8601 standard is checked, where the string must be exactly of the form XXXX-XX-XXTXX:XX:XX, followed by a 'Z' for UTC time or by - or + followed by 4 digit which gives the shift in hours and minute from the UTC time
+// If strict_checking is true then the strict conformance to the iso8601 standard is checked, where the string must be exactly of the form XXXX-XX-XXTXX:XX:XX, followed by a 'Z' for GMT time or by - or + followed by 4 digits which give the shift in hours and minutes from the GMT time
 // If the conversion went wrong then return false
-bool iso_to_time_t(std::string s, time_t& utc_time, bool strict_checking=false) {
+bool iso_to_time_t(std::string s, time_t& tt, bool strict_checking=false) {
   tm t;
   time_t shift_dir=0;
 
   // At least must be of the form XXXX.XX.XX.XX.XX.XX
   if (s.size() >= 19) {
-    t.tm_year=std::stoi(s.substr(0, 4))-1900;
-    t.tm_mon=std::stoi(s.substr(5, 2))-1;
-    t.tm_mday=std::stoi(s.substr(8, 2));
-    t.tm_hour=std::stoi(s.substr(11, 2));
-    t.tm_min=std::stoi(s.substr(14, 2));
-    t.tm_sec=std::stoi(s.substr(17, 2));
+    t.tm_year = std::stoi(s.substr(0, 4))-1900;
+    t.tm_mon  = std::stoi(s.substr(5, 2))-1;
+    t.tm_mday = std::stoi(s.substr(8, 2));
+    t.tm_hour = std::stoi(s.substr(11, 2));
+    t.tm_min  = std::stoi(s.substr(14, 2));
+    t.tm_sec  = std::stoi(s.substr(17, 2));
+    t.tm_isdst=0;
 
-    //t.tm_wday=0;
-    //t.tm_yday=0;
-    t.tm_isdst=-1;
+    // Get gmt time ( = localtime-timezone)
+    tt=mktime(&t)-timezone;
 
-    utc_time=mktime(&t);
-
-    // XXXX.XX.XX.XX.XX.XXZ GMT/UTC time representation
-    if (s.size() >= 20 && s[19] == 'Z') utc_time=utc_time+timezone;
+    // XXXX.XX.XX.XX.XX.XXZ GMT time representation
+    if (s.size() == 20 && s[19] == 'Z') ;
     else {
       // XXXX.XX.XX.XX.XX.XX-XXXX or XXXX.XX.XX.XX.XX.XXZ+XXXX local time representation
+      // 2020-01-01T00:00:00+0100
       time_t shift_hour=0, shift_min=0;
 
-      if (s.size() >= 25) {
-        shift_hour=std::stoi(s.substr(22, 2));
-        shift_min=std::stoi(s.substr(24, 2));
+      if (s.size() == 24) {
+        shift_hour=std::stoi(s.substr(20, 2));
+        shift_min=std::stoi(s.substr(22, 2));
 
-        if (s[21] == '+') shift_dir=1;
+        if (s[19] == '-') shift_dir=1;
         else 
-          if (s[21] == '-') shift_dir=-1;
+          if (s[19] == '+') shift_dir=-1;
             else shift_dir=0;
 
       }
 
-      utc_time=utc_time+shift_dir*(shift_hour*3600+shift_min*60);
+      tt=tt+shift_dir*(shift_hour*3600+shift_min*60);
     }
   } else return false;
 
-  std::cout << "year " << t.tm_year << ", mon " << t.tm_mon << ", mday " << t.tm_mday << ", time " << t.tm_hour << 'h' << t.tm_min << 'm' << t.tm_sec << "s, shift " << shift_dir << " ==> " << utc_time << std::endl;
+  std::cout << "Length " << s.size() << ", year " << t.tm_year+1900 << ", month " << t.tm_mon+1 <<
+    ", mday " << t.tm_mday << ", wday " << t.tm_wday << ", yday " << t.tm_yday+1 << 
+    ", time " << t.tm_hour << 'h' << t.tm_min << 'm' << t.tm_sec << "s, shift " << shift_dir << " ==> " << tt << ", ";// << std::endl;
 
   if (strict_checking) {
+    // XXXX-XX-XXTXX:XX:XX
     if (s.size() >= 20 && s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':') {
       if (s.size() == 20 && s[19] == 'Z') return true;
-      else if (s.size() == 25 && shift_dir != 0) return true;
+      else if (s.size() == 24 && shift_dir != 0) return true;
     }
 
     return false;
@@ -136,5 +130,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
 
