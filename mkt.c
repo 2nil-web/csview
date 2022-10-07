@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   struct tm t;
   time_t tt;
 
-  time (&tt);
+  time(&tt);
 
   // Print current gmt time
   gmtime_s(&t, &tt);
