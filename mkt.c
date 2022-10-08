@@ -4,8 +4,8 @@
 #include <time.h>
 
 #ifdef __WIN32
-#define gmtime_r gmtime_s
-#define localtime_r localtime_s
+#define gmtime_r(a,b) gmtime_s(b,a)
+#define localtime_r(a,b) localtime_s(b,a)
 #endif
 
 void print_iso_time(char *msg, struct tm* t) {
@@ -29,12 +29,12 @@ int main(int argc, char **argv) {
 
 
   // Print current gmt time
-  gmtime_r(&t, &tt);
+  gmtime_r(&tt, &t);
   print_iso_time("Current gmt time         ==> ", &t);
   printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
 
   // Print current local time
-  localtime_r(&t, &tt);
+  localtime_r(&tt, &t);
   print_iso_time("Current local time       ==> ", &t);
   printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
 
