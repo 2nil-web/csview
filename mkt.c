@@ -19,13 +19,13 @@ void print_iso_time(char *msg, struct tm* t) {
   printf("%lld ==> %s\n", tt, daybuf);
 }
 
-#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have")
+#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have", tt)
 
 int main(int argc, char **argv) {
   struct tm t;
   time_t tt;
 
-  // Calling time and localtime under WIN32 insure the setting of variables *tzname, timezone, daylight for the local time zone
+  // Calling time and localtime insure the setting of variables tzname, timezone, daylight for the local time zone
   time(&tt);
   localtime(&tt);
   ptz("1-");
