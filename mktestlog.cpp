@@ -97,8 +97,11 @@ bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false
     ti.t.tm_sec  = std::stoi(s.substr(17, 2));
     ti.t.tm_isdst=0;
 
-    // Get gmt time (=localtime-timezone)
+    // Get gm time (=localtime-timezone)
+
     ti.localtime=ti.gmtime=mktime(&ti.t)-timezone;
+    // Calling localtime or gmtime feeds variables *tzname, timezone, daylight for local time zone
+    localtime(&ti.localtime);
 
     // XXXX.XX.XX.XX.XX.XXZ GMT time representation
     if (s.size() != 20 || s[19] != 'Z') {

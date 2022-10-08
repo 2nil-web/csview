@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
   struct tm t;
   time_t tt;
 
+  printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
   time(&tt);
   localtime(&tt);
   printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
