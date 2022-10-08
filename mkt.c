@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   time_t tt;
 
   time(&tt);
-  localtime(NULL);
+  localtime(&tt);
   printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
 
 
