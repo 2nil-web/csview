@@ -5,9 +5,39 @@
 #include <filesystem>
 #include <random>
 #include <ctime>
+#include <cstdio>
+#include <cerrno>
+#include <system_error>
+#include <expected>
 
-std::vector<std::string> args, envs;
-std::string prog_basename;
+#include <memory>
+#include <string>
+#include <stdexcept>
+
+// https://github.com/Dyrcona/libunistdcpp/blob/devel/include/unistd/asprintf.h
+template<typename T>
+auto sfmt_convert(T&& t) {
+  if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::string>) return std::forward<T>(t).c_str();
+  else return std::forward<T>(t);
+}
+
+template<typename ... Args>
+auto sfmt_impl(std::string &s, const std::string& format, Args&& ... args) {
+  auto l=std::snprintf(nullptr, 0, format.c_str(), std::forward<Args>(args)...);
+  if (l < 0) return l;
+  std::size_t sz=l+1;
+  auto buf=std::make_unique<char[]>(sz);
+  l=std::snprintf(buf.get(), sz, format.c_str(), std::forward<Args>(args)...);
+  if (l > 0) s.assign(buf.get(), l);
+  return l;
+}
+
+template<typename ... Args>
+std::string sfmt(const std::string& format, Args&& ... args) {
+  std::string s{};
+  if (sfmt_impl(s, format, sfmt_convert(std::forward<Args>(args))...) == -1) throw std::runtime_error("Error during formatting.");
+  return s;
+}
 
 int generate_number() {
   std::random_device rd; // Seed
@@ -42,35 +72,43 @@ std::time_t generate_time_t() {
   return 0;
 }
 
-// Convert an iso8601 compatible string to a time_t value which is the number of second away from an epoch
-// The string must, at least be of the form XXXX.XX.XX.XX.XX.XX where X is a digit and . is anything
-// If strict_checking is true then the strict conformance to the iso8601 standard is checked, where the string must be exactly of the form XXXX-XX-XXTXX:XX:XX, followed by a 'Z' for GMT time or by - or + followed by 4 digits which give the shift in hours and minutes from the GMT time
-// If the conversion went wrong then return false
-bool iso_to_time_t(std::string s, time_t& tt, bool strict_checking=false) {
-  tm t;
+struct s_time_info {
+  tm t; // tm_year, tm_mon, tm_mday ...
+  time_t gmtime, localtime; // Number of second away from an epoch
+  std::string tzs; // Time zone string which can have value "GMT" or "+0100" or "-0100" or "+0205" or "-0230" and so forth, generally minus sign indicate timezone at east of GMT and plus sign indicate timezone at west
+};
+// Convert an iso8601 compatible string (<=> to command "date +%Y-%m-%dT%H:%M:%S%z") to a s_time_info struct 
+// The string must, at least be of the form XXXX.XX.XX.XX.XX.XX where X is a digit and . might be anything
+// If strict_checking is true then the strict conformance to the iso8601 standard is checked,
+// where the string must be exactly of the form XXXX-XX-XXTXX:XX:XX, eventually followed by a 'Z' for GMT time or by - or + 
+// followed by 4 digits which give the shift in hours and minutes from the GMT time
+// If for any reason, the conversion went wrong then it return false but the there might be a result in the output variable tt
+bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false) {
   time_t shift_dir=0;
+  ti.tzs="GMT";
 
   // At least must be of the form XXXX.XX.XX.XX.XX.XX
   if (s.size() >= 19) {
-    t.tm_year = std::stoi(s.substr(0, 4))-1900;
-    t.tm_mon  = std::stoi(s.substr(5, 2))-1;
-    t.tm_mday = std::stoi(s.substr(8, 2));
-    t.tm_hour = std::stoi(s.substr(11, 2));
-    t.tm_min  = std::stoi(s.substr(14, 2));
-    t.tm_sec  = std::stoi(s.substr(17, 2));
-    t.tm_isdst=0;
+    ti.t.tm_year = std::stoi(s.substr(0, 4))-1900;
+    ti.t.tm_mon  = std::stoi(s.substr(5, 2))-1;
+    ti.t.tm_mday = std::stoi(s.substr(8, 2));
+    ti.t.tm_hour = std::stoi(s.substr(11, 2));
+    ti.t.tm_min  = std::stoi(s.substr(14, 2));
+    ti.t.tm_sec  = std::stoi(s.substr(17, 2));
+    ti.t.tm_isdst=0;
 
-    // Get gmt time ( = localtime-timezone)
-    tt=mktime(&t)-timezone;
+    // Get gmt time (=localtime-timezone)
+    ti.localtime=ti.gmtime=mktime(&ti.t)-timezone;
 
     // XXXX.XX.XX.XX.XX.XXZ GMT time representation
-    if (s.size() == 20 && s[19] == 'Z') ;
-    else {
+    if (s.size() != 20 || s[19] != 'Z') {
       // XXXX.XX.XX.XX.XX.XX-XXXX or XXXX.XX.XX.XX.XX.XXZ+XXXX local time representation
       // 2020-01-01T00:00:00+0100
       time_t shift_hour=0, shift_min=0;
 
       if (s.size() == 24) {
+        ti.tzs=s.substr(19, 5);
+
         shift_hour=std::stoi(s.substr(20, 2));
         shift_min=std::stoi(s.substr(22, 2));
 
@@ -81,16 +119,11 @@ bool iso_to_time_t(std::string s, time_t& tt, bool strict_checking=false) {
 
       }
 
-      tt=tt+shift_dir*(shift_hour*3600+shift_min*60);
+      ti.localtime=ti.gmtime+shift_dir*(shift_hour*3600+shift_min*60);
     }
   } else return false;
 
-  std::cout << "Length " << s.size() << ", year " << t.tm_year+1900 << ", month " << t.tm_mon+1 <<
-    ", mday " << t.tm_mday << ", wday " << t.tm_wday << ", yday " << t.tm_yday+1 << 
-    ", time " << t.tm_hour << 'h' << t.tm_min << 'm' << t.tm_sec << "s, shift " << shift_dir << " ==> " << tt << ", ";// << std::endl;
-
-  if (strict_checking) {
-    // XXXX-XX-XXTXX:XX:XX
+  if (strict_checking) { // XXXX-XX-XXTXX:XX:XX[Z|[+|-]XXXX]
     if (s.size() >= 20 && s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':') {
       if (s.size() == 20 && s[19] == 'Z') return true;
       else if (s.size() == 24 && shift_dir != 0) return true;
@@ -103,21 +136,28 @@ bool iso_to_time_t(std::string s, time_t& tt, bool strict_checking=false) {
 }
 
 void print_iso_time(std::string s) {
-  time_t t;
-  iso_to_time_t(s, t);
-  std::cout << s << " ==> " << t << std::endl;
+  s_time_info ti;
+  if (!iso_to_time_info(s, ti, true)) std::cout << "Problem with iso 8601 conversion, displaying anyway ..." << std::endl;
+
+  std::cout
+    << s << " ==> "
+    << sfmt("length %d, year %4d, month %02d, month day %02d, week day %02d, year day %03d, time %02dh%02dm%02ds, timezone %s, gm and local time values %lld, %lld",
+            s.size(), ti.t.tm_year+1900, ti.t.tm_mon+1, ti.t.tm_mday, ti.t.tm_wday, ti.t.tm_yday, ti.t.tm_hour, ti.t.tm_min, ti.t.tm_sec, ti.tzs, ti.gmtime, ti.localtime)
+    << std::endl;
 }
 
 // To check :
 // make mktestlog && ./mktestlog.exe 2022-01-01T00:00:00Z && date -d 2020-01-01T00:00:00Z +%s
 int main(int argc, char *argv[]) { 
+  std::vector<std::string> args;//, envs;
+  std::string prog_basename;
+
   args=std::vector<std::string>(argv, argv + argc);
   prog_basename=std::filesystem::path(args[0]).stem().string();
   args.erase(args.begin());
 
 //  generate_number();
 //  generate_time_t();
-
 
   if (args.size() > 0) {
     for (auto s:args) print_iso_time(s);
