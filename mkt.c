@@ -25,11 +25,9 @@ int main(int argc, char **argv) {
   struct tm t;
   time_t tt;
 
-#ifdef __WIN32
   // Calling time and localtime under WIN32 insure the setting of variables *tzname, timezone, daylight for the local time zone
   time(&tt);
   localtime(&tt);
-#endif
   ptz("1-");
 
   time(&tt);
