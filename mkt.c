@@ -19,25 +19,33 @@ void print_iso_time(char *msg, struct tm* t) {
   printf("%lld ==> %s\n", tt, daybuf);
 }
 
+#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have")
+
 int main(int argc, char **argv) {
   struct tm t;
   time_t tt;
 
-  printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
+#ifdef __WIN32
+  // Calling time and localtime under WIN32 insure the setting of variables *tzname, timezone, daylight for the local time zone
   time(&tt);
   localtime(&tt);
-  printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
+#endif
+  ptz("1-");
+
+  time(&tt);
+  localtime(&tt);
+  ptz("2-");
 
 
   // Print current gmt time
   gmtime_r(&tt, &t);
   print_iso_time("Current gmt time         ==> ", &t);
-  printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
+  ptz("3-");
 
   // Print current local time
   localtime_r(&tt, &t);
   print_iso_time("Current local time       ==> ", &t);
-  printf("The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have");
+  ptz("4-");
 
   if (argc != 7) return 1;
 
