@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
   time_t tt;
 
   // Calling time and localtime insure the setting of variables tzname, timezone, daylight for the local time zone
-  time(&tt);
-  localtime(&tt);
+  { time_t dum; time(&dum); localtime(&dum); }
+
   ptz("1-");
 
   time(&tt);

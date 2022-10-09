@@ -82,7 +82,7 @@ struct s_time_info {
 // If strict_checking is true then the strict conformance to the iso8601 standard is checked,
 // where the string must be exactly of the form XXXX-XX-XXTXX:XX:XX, eventually followed by a 'Z' for GMT time or by - or + 
 // followed by 4 digits which give the shift in hours and minutes from the GMT time
-// If for any reason, the conversion went wrong then it return false but the there might be a result in the output variable tt
+// If for any reason, the conversion went wrong then it return false but the there might be a result in the output variable ti
 bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false) {
   time_t shift_dir=0;
   ti.tzs="GMT";
@@ -97,14 +97,17 @@ bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false
     ti.t.tm_sec  = std::stoi(s.substr(17, 2));
     ti.t.tm_isdst=0;
 
-    // Get gm time (=localtime-timezone)
+    // Calling time and localtime insure the setting of variables tzname, timezone, daylight for the local time zone
+    { time_t dum; time(&dum); localtime(&dum); }
 
-    ti.localtime=ti.gmtime=mktime(&ti.t)-timezone;
-    // Calling localtime or gmtime feeds variables *tzname, timezone, daylight for local time zone
-    localtime(&ti.localtime);
+    // By default considere local time zone
+    ti.localtime=mktime(&ti.t);
+    // Get gm time (=localtime-timezone)
+    ti.gmtime=ti.localtime-timezone;
 
     // XXXX.XX.XX.XX.XX.XXZ GMT time representation
-    if (s.size() != 20 || s[19] != 'Z') {
+    if (s.size() == 20 && s[19] == 'Z') ;
+    else {
       // XXXX.XX.XX.XX.XX.XX-XXXX or XXXX.XX.XX.XX.XX.XXZ+XXXX local time representation
       // 2020-01-01T00:00:00+0100
       time_t shift_hour=0, shift_min=0;
@@ -124,12 +127,13 @@ bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false
 
       ti.localtime=ti.gmtime+shift_dir*(shift_hour*3600+shift_min*60);
     }
+
+    // If time zone is not indicate then considere local time zone which implies that ti.localtime == ti.gmtime
   } else return false;
 
   if (strict_checking) { // XXXX-XX-XXTXX:XX:XX[Z|[+|-]XXXX]
-    if (s.size() >= 20 && s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':') {
-      if (s.size() == 20 && s[19] == 'Z') return true;
-      else if (s.size() == 24 && shift_dir != 0) return true;
+    if (s.size() >= 19 && s[4] == '-' && s[7] == '-' && s[10] == 'T' && s[13] == ':' && s[16] == ':') {
+      if (s.size() == 19 || (s.size() == 20 && s[19] == 'Z') || (s.size() == 24 && shift_dir != 0)) return true;
     }
 
     return false;
