@@ -1,5 +1,4 @@
 
-# Test proce
 OS=$(shell uname -s)
 
 # Si le paramètre est un répertoire existant alors on l'ajoute au PATH
