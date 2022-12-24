@@ -10,7 +10,7 @@ IDM_MAIN_MENU MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open(TODO)",          IDM_SEFI
+        MENUITEM "&Open",          IDM_OPEN
         MENUITEM SEPARATOR
         MENUITEM "&Refresh now",         IDM_REFR
         MENUITEM "&Auto-refresh",        IDM_AREF
@@ -21,7 +21,8 @@ BEGIN
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&Some help about WinTail...",          IDM_ABOUT
+        MENUITEM "&Help",                IDM_HELP
+        MENUITEM "&About",               IDM_ABOUT
     END
 END
 
@@ -29,12 +30,12 @@ IDM_CONTEXT_MENU MENU DISCARDABLE
 BEGIN
     POPUP "Context Menu"
     BEGIN
-        MENUITEM "&Open(TODO)",    IDM_SEFI
+        MENUITEM "&Open",    IDM_OPEN
         MENUITEM SEPARATOR
         MENUITEM "&Refresh",       IDM_REFR
         MENUITEM "&Auto-refresh",  IDM_AREF
         MENUITEM SEPARATOR
-        MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM "&Search/Filter(TODO)", IDM_SEFI
         MENUITEM SEPARATOR
         MENUITEM "E&xit",          IDM_EXIT
     END
@@ -43,13 +44,12 @@ END
 
 IDD_ABOUT DIALOG DISCARDABLE  22, 17, 230, 75
 STYLE DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
-CAPTION "Some help about WinTail"
+CAPTION "About WinTail"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CTEXT          "Wintail. The windows GUI tail for CSV files (More or less)",-1,0,4,220,8
-    LTEXT          "Set the environment variable 'REFRESH_INTERVAL' in millisecond",-1,4,20,230,8
-    LTEXT          "  in order to modify the autorefresh frequency.",-1,4,30,230,8
-    LTEXT          "Default value is 2000 ms.",-1,4,40,230,8
+    CTEXT          "Wintail",-1,0,4,220,8
+    CTEXT          "The windows GUI tail for CSV files",-1,0,14,220,8
+    CTEXT          "(More or less)",-1,0,24,220,8
     DEFPUSHBUTTON "OK",IDOK,90,54,50,14,WS_GROUP
 END
 

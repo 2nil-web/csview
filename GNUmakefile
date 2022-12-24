@@ -105,8 +105,9 @@ ${PREFIX}_res.o : ${PREFIX}.ico
 strip : $(TARGETS)
 	@file ${TARGETS} | grep stripped >/dev/null || ( $(STRIP) $(TARGETS) && echo "Strip OK" )
 
-upx : strip
-	$(UPX) -q $(TARGETS) || true
+upx : $(TARGETS)
+	$(STRIP) $(TARGETS) 2>/dev/null || true
+	$(UPX) -q $(TARGETS) 2>/dev/null || true
 
 cfg :
 	@echo "${PATH}"

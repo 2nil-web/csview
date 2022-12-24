@@ -13,5 +13,6 @@
 #define IDM_SEFI                        118
 #define IDM_EXIT                        110
 
-#define IDM_ABOUT                       124
+#define IDM_HELP                        124
+#define IDM_ABOUT                       126
 

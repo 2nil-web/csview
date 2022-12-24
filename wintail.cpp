@@ -41,6 +41,7 @@ HINSTANCE g_hInst;
 TCHAR g_szClassName[]=TEXT("wintailClass");
 // Nom du fichier csv à visualiser
 std::string g_filename;
+bool g_autoref=true;
 // Séparateur du fichier csv (par défaut ;)
 char g_separator=';';
 // Nombre maximum de colonne dans le csv
@@ -51,6 +52,12 @@ std::vector < std::string > g_header;
 std::vector < std::vector < std::string >> g_sheet;
 // Pour calculer la plus large taille de chaque colonne : get<0>=row, get<1>=text.size, get<2>=pixel width
 std::vector <std::tuple < size_t, size_t, int >> g_widestCol;
+
+std::string InfMsg=R"(WinTail displays the content of a csv file.
+At least one argument to provide the name of file to view.
+A second argument (true, on, 1 or anything else for false) to indicate if constant file polling is required (this is the default).
+A third argument to modify the polling interval in millisecond (default is 2000 ms). Value is overwritten by environment variable 'REFRESH_INTERVAL'.
+A fourth argument to define the csv separator (default is ';').)";
 
 void ErrorHandlerEx(WORD wLine, LPSTR lpszFile) {
   LPVOID lpvMessage;
@@ -444,10 +451,25 @@ void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
 }
 
 
+UINT g_refitv=2000;
+void do_autoref(HWND hWnd, bool do_it) {
+  if (do_it) {
+    CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
+    EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+    char *sri=getenv("REFRESH_INTERVAL");
+    UINT ri;
+    if (sri) ri=std::stoi(sri);
+    else ri=g_refitv;
+    
+    SetTimer(hWnd, 1, ri, AutoRefresh);
+  }
+}
+
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
   switch (uMessage) {
   case WM_CREATE:
     mkListView(hWnd);
+    do_autoref(hWnd, g_autoref);
     break;
 
   case WM_KEYDOWN:
@@ -457,6 +479,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
   case WM_NOTIFY:
     if (ListViewNotify(hWnd, wParam, lParam)) return 0;
     else {
+      //Sleep(400);
       if (HIBYTE(GetKeyState(VK_ESCAPE)) != 0 && GetFocus() != hWnd) DestroyWindow(hWnd);
     }
     break;
@@ -471,6 +494,31 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 
   case WM_COMMAND:
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
+    case IDM_OPEN: {
+      OPENFILENAME ofn;
+      char fn[MAX_PATH]="";
+
+      ZeroMemory(&ofn, sizeof(OPENFILENAME));
+      ofn.lStructSize=sizeof(OPENFILENAME);
+      ofn.hwndOwner=hWnd;
+      ofn.lpstrFilter="Fichier csv\0*.csv\0\0";
+      ofn.nFilterIndex=0;
+
+      //GetDlgItemText(hDlg, IDC_SUBFILE, fn, MAX_PATH);
+      ofn.lpstrFile=fn;
+      ofn.nMaxFile=MAX_PATH;
+
+      ofn.lpstrFileTitle=NULL;
+      ofn.lpstrInitialDir=NULL;
+      ofn.lpstrTitle="Fichier csv";
+      ofn.Flags=OFN_FILEMUSTEXIST|OFN_SHOWHELP;
+
+      if (GetOpenFileName(&ofn)) {
+        g_filename=fn;
+        mkListView(hWnd);
+      }
+      } break;
+
     case IDM_REFR: {
       mkListView(hWnd);
       break;
@@ -481,20 +529,14 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_ENABLED);
         KillTimer(hWnd, 1);
-      } else {
-        CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
-        EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
-        char *sri=getenv("REFRESH_INTERVAL");
-        UINT ri;
-        if (sri) ri=std::stoi(sri);
-        else ri=1000;
-        
-        SetTimer(hWnd, 1, ri, AutoRefresh);
-      }
-
+      } else do_autoref(hWnd, true);
       break;
     case IDM_EXIT:
       DestroyWindow(hWnd);
+      break;
+
+    case IDM_HELP:
+      MessageBox(NULL, InfMsg.c_str(), "WinTail", MB_OK);
       break;
 
     case IDM_ABOUT:
@@ -561,8 +603,14 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   MSG msg;
   std::vector<std::string> args=cmdLineToSVec();
 
+  if (args.size() == 2 && (args[1] == "-h" || args[1] == "-help" || args[1] == "--help")) {
+    std::cout << InfMsg << std::endl;
+  }
+
   if (args.size() > 1) g_filename=args[1];
-  if (args.size() > 2) g_separator=args[2][0];
+  if (args.size() > 2) g_autoref=args[2] == "1" || args[2] == "on" || args[2] == "true"?true:false;
+  if (args.size() > 3) g_refitv=std::stoi(args[3]);
+  if (args.size() > 4) g_separator=args[4][0];
 
   // Required to use the common controls (not so sure as of 2022)
   InitCommonControls();
