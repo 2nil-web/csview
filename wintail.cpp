@@ -17,6 +17,11 @@
 #include <filesystem>
 #include <fstream>
 
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "resource.h"
 
 #ifndef WIN32
@@ -405,24 +410,37 @@ void mkListView(HWND hWnd) {
 }
 
 FILETIME CurrentLastWriteTime = { 0, 0 };
+time_t curr_mtime=0;
 void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
-  HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+  bool modified=false;
 
-  if (hFile != INVALID_HANDLE_VALUE) {
-    FILETIME LastWriteTime = { 0, 0 };
-    GetFileTime(hFile, NULL, NULL, &LastWriteTime);
-    CloseHandle(hFile);
-    //std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
+  struct stat st;
+  stat(g_filename.c_str(), &st);
+  if (curr_mtime != st.st_ctime) {
+    curr_mtime=st.st_ctime;
+    //std::cout << "stat has detected modification." << std::endl;
+    modified=true;
+  } else {
+    HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    if (LastWriteTime.dwLowDateTime == CurrentLastWriteTime.dwLowDateTime && LastWriteTime.dwHighDateTime == CurrentLastWriteTime.dwHighDateTime) {
-      //std::cout << "Has NOT been modified" << std::endl;
-      return;
+    if (hFile != INVALID_HANDLE_VALUE) {
+      FILETIME LastWriteTime = { 0, 0 };
+      GetFileTime(hFile, NULL, NULL, &LastWriteTime);
+      CloseHandle(hFile);
+      //std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
+
+      if (LastWriteTime.dwLowDateTime == CurrentLastWriteTime.dwLowDateTime && LastWriteTime.dwHighDateTime == CurrentLastWriteTime.dwHighDateTime) {
+        //std::cout << "Has NOT been modified" << std::endl;
+        return;
+      }
+
+      CurrentLastWriteTime=LastWriteTime;
+      //std::cout << "GetFileTime has detected modification." << std::endl;
+      modified=true;
     }
-
-    CurrentLastWriteTime=LastWriteTime;
-    //std::cout << "Has been modified" << std::endl;
-    mkListView(hWnd);
   }
+
+  if (modified) mkListView(hWnd);
 }
 
 
