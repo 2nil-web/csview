@@ -30,18 +30,19 @@ MAGICK=magick
 RC=windres
 
 ifeq (${MSYSTEM},MINGW64)
-$(call a2p,/mingw64/bin)
+PATH:=/mingw64/bin:${PATH}
+LDFLAGS  += -static
 endif
 
 ifeq (${MSYSTEM},UCRT64)
-$(call a2p,/ucrt64/bin)
+PATH:=/ucrt64/bin:${PATH}
 LDFLAGS += -static
 endif
 
 # CLANG n'accepte pas les fichiers en ISO-8859
 # Pour utiliser clang il faut passer par le shell clang64.exe de msys2
 ifeq (${MSYSTEM},CLANG64)
-$(call a2p,/clang64/bin)
+PATH:=/clang64/bin:${PATH}
 CC=clang++
 CXX=clang++
 LDFLAGS += -pthread -static
@@ -56,10 +57,14 @@ EXEXT=.exe
 LDFLAGS += -mwindows
 LDLIBS  +=  -lwsock32 -lws2_32
 
-$(call a2p,/C/Program Files \(x86\)/Inno Setup 6)
-$(call a2p,${HOME}/Progs/Inno Setup 6)
-$(call a2p,/C/Program Files/ImageMagick-7.1.0-Q16)
-$(call a2p,${HOME}/Progs/ImageMagick-7.1.0-portable-Q16-x64)
+PGF=$(subst \,/,$(subst C:\,/c/,$(PROGRAMFILES)))
+PGF86=${PGF} (x86)
+PATH:=${PATH}:${PGF86}/Inno Setup 6
+PATH:=${PATH}:${PATH}:${PGF}/ImageMagick-7.1.0-Q16
+PATH:=${PATH}:${PGF}/Inkscape/bin
+PATH:=${PATH}:${HOME}/Progs/Inno Setup 6
+PATH:=${PATH}:${HOME}/Progs/ImageMagick-7.1.0-portable-Q16-x64
+PATH:=${PATH}:/c/UnixTools/bin
 
 LDLIBS   += -lurlmon
 LDLIBS   += -lwsock32 -lole32 -luuid -lcomctl32 -loleaut32 -lgdi32
@@ -98,13 +103,14 @@ ${PREFIX}${EXEXT} : ${OBJS}
 ${PREFIX}_res.o : ${PREFIX}.ico
 
 strip : $(TARGETS)
-	$(STRIP) $(TARGETS)
+	@file ${TARGETS} | grep stripped >/dev/null || ( $(STRIP) $(TARGETS) && echo "Strip OK" )
 
 upx : strip
-	$(UPX) $(TARGETS)
+	$(UPX) -q $(TARGETS) || true
 
 cfg :
-	@type ${CC} ${CXX} ${LD} ${RC} ${STRIP} ${GDB} ${UPX} ${MAGICK}
+	@echo "${PATH}"
+	@type cc c++ gcc g++ ld windres strip gdb upx convert inkscape iscc
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 

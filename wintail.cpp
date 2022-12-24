@@ -13,6 +13,8 @@
 #include <sstream>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
+#include <filesystem>
 #include <fstream>
 
 #include "resource.h"
@@ -153,60 +155,67 @@ INT_PTR CALLBACK AboutDlgProc(HWND hDlg,
   return FALSE;
 }
 
-LRESULT ListViewNotify(HWND /*hWnd*/ , LPARAM lParam) {
-  LPNMHDR lpnmh=(LPNMHDR) lParam;
-  //HWND     hwndListView=GetDlgItem(hWnd, ID_LISTVIEW);
+HWND hwndListView=NULL;
+LRESULT ListViewNotify(HWND, WPARAM wParam, LPARAM lParam) {
+  LPNMHDR lpnmh=(LPNMHDR)lParam;
 
-  switch (lpnmh -> code) {
-  case LVN_GETDISPINFO: {
-    LV_DISPINFO * lpdi=(LV_DISPINFO * ) lParam;
+  if (lpnmh->hwndFrom != hwndListView) return 0;
 
-    if (lpdi -> item.iSubItem == 0) { // 1ére colonne
-      if (lpdi -> item.mask & LVIF_TEXT) {
-        if ((int) g_sheet.size() > lpdi -> item.iItem && g_sheet[lpdi -> item.iItem].size() > 0) {
-          _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, std::to_string(lpdi -> item.iItem+1).c_str(), _TRUNCATE);
-        } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
-      }
+  switch (lpnmh->code) {
+    case LVN_GETDISPINFO: {
+      //std::cout << "VK_ESCAPE " << VK_ESCAPE << ", wParam " << wParam << ", lParam " << lParam << ", Notif code " << lpnmh->code << std::endl;
+      LV_DISPINFO * lpdi=(LV_DISPINFO * ) lParam;
 
-      //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
-    } else { // Colonnes suivantes
-      if (lpdi -> item.mask & LVIF_TEXT) {
-        if ((int) g_sheet.size() > lpdi -> item.iItem && (int) g_sheet[lpdi -> item.iItem].size() >= lpdi -> item.iSubItem) {
-          _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, g_sheet[lpdi -> item.iItem][lpdi -> item.iSubItem-1].c_str(), _TRUNCATE);
-        } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
+      if (lpdi -> item.iSubItem == 0) { // 1ére colonne
+        if (lpdi -> item.mask & LVIF_TEXT) {
+          if ((int) g_sheet.size() > lpdi -> item.iItem && g_sheet[lpdi -> item.iItem].size() > 0) {
+            _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, std::to_string(lpdi -> item.iItem+1).c_str(), _TRUNCATE);
+          } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
+        }
+
+        //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
+      } else { // Colonnes suivantes
+        if (lpdi -> item.mask & LVIF_TEXT) {
+          if ((int) g_sheet.size() > lpdi -> item.iItem && (int) g_sheet[lpdi -> item.iItem].size() >= lpdi -> item.iSubItem) {
+            _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, g_sheet[lpdi -> item.iItem][lpdi -> item.iSubItem-1].c_str(), _TRUNCATE);
+          } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
+        }
       }
     }
-  }
-  return 0;
+    return 1;
 
-  case LVN_ODCACHEHINT: {
-    /*
-    LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
-    This sample doesn't use this notification, but this is sent when the 
-    ListView is about to ask for a range of items. On this notification, 
-    you should load the specified items into your local cache. It is still 
-    possible to get an LVN_GETDISPINFO for an item that has not been cached, 
-    therefore, your application must take into account the chance of this 
-    occurring.
-    */
-  }
-  return 0;
+    case LVN_ODCACHEHINT: {
+      /*
+      LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
+      This sample doesn't use this notification, but this is sent when the 
+      ListView is about to ask for a range of items. On this notification, 
+      you should load the specified items into your local cache. It is still 
+      possible to get an LVN_GETDISPINFO for an item that has not been cached, 
+      therefore, your application must take into account the chance of this 
+      occurring.
+      */
+    }
+    return 1;
 
-  case LVN_ODFINDITEM: {
-    /*
-    LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
-    This sample doesn't use this notification, but this is sent when the 
-    ListView needs a particular item. Return -1 if the item is not found.
-    */
-  }
-  return 0;
+    case LVN_ODFINDITEM: {
+      /*
+      LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
+      This sample doesn't use this notification, but this is sent when the 
+      ListView needs a particular item. Return -1 if the item is not found.
+      */
+    }
+    return 1;
   }
 
   return 0;
 }
 
+size_t maxrow=29;
 unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
+  g_sheet.clear();
   std::cout << "Starting to load in memory of the file " << fname << std::endl;
+  char *smr=getenv("MAXROW");
+  if (smr) maxrow=std::stoi(smr);
   // nuplet pour évaluer la largeur de chaque colonne
   // Le 1er nuplet (tuple) c'est pour la largeur de la 1ére colonne qui indique le numéro de ligne ...
   g_widestCol.push_back(std::make_tuple(0, 0, 0));
@@ -221,6 +230,7 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
 
     while (std::getline(fp, ln)) {
       std::stringstream ss(ln);
+      //std::cout << ln << std::endl;
       row.clear();
       size_t iPos=2;
 
@@ -233,6 +243,7 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
 
       while (std::getline(ss, cell, sep)) {
         row.push_back(cell);
+        //std::cout << "Count " << count << ", cell " << cell << std::endl;
 
         if (count > 0) {
           ListView_GetItemRect(hwnd, count, &rc, LVIR_BOUNDS);
@@ -245,6 +256,9 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
           }
           iPos++;
         }
+
+        //std::cout << "maxrow:" << maxrow << ", row.size():" << row.size() << ", g_maxCol:" << g_maxCol << std::endl;
+        if (row.size() > maxrow) break;
       }
 
       if (row.size() > g_maxCol) g_maxCol=row.size();
@@ -280,17 +294,22 @@ BOOL InitListView(HWND hwndListView) {
   lvColumn.fmt=LVCFMT_LEFT;
   lvColumn.cx=120;
 
+  //std::cout << __LINE__ << std::endl;
   lvColumn.pszText=(char * )
   "#";
   ListView_InsertColumn(hwndListView, 0, & lvColumn);
 
+  //std::cout << __LINE__ << std::endl;
   for (i=0; i < g_maxCol; i++) {
     lvColumn.pszText=(char * ) g_header[i].c_str();
-    ListView_InsertColumn(hwndListView, i+1, & lvColumn);
+    ListView_InsertColumn(hwndListView, i+1, &lvColumn);
   }
 
+  //std::cout << __LINE__ << std::endl;
   InsertListViewItems(hwndListView);
+  //std::cout << __LINE__ << std::endl;
   ListView_SetExtendedListViewStyle(hwndListView, LVS_EX_FULLROWSELECT); // Set style
+  //std::cout << __LINE__ << std::endl;
   return TRUE;
 }
 
@@ -345,47 +364,84 @@ BOOL DoContextMenu(HWND hWnd, WPARAM wParam, LPARAM lParam) {
 void ListViewToBottom( HWND hwnd) {
   int yMin, yMax;
   GetScrollRange(hwnd, SB_VERT, &yMin, &yMax);
+  //std::cout << "yMin:" << yMin << ", yMax:" << yMax << std::endl;
   RECT rc;
   ListView_GetItemRect(hwnd, yMax, &rc, LVIR_SELECTBOUNDS);
-  std::cout << "Go to bottom=" << yMax << ", rect (" << rc.left << ',' << rc.top << ',' << rc.right << ',' << rc.bottom << ')' << std::endl;
+  //std::cout << "Go to bottom=" << yMax << ", rect (" << rc.left << ',' << rc.top << ',' << rc.right << ',' << rc.bottom << ')' << std::endl;
   ListView_Scroll(hwnd, 0, rc.top);
   ListView_SetItemState(hwnd, yMax, LVIS_SELECTED, LVIS_SELECTED);
   ListView_SetItemState(hwnd, yMax, LVIS_FOCUSED, LVIS_FOCUSED);
   SetFocus(hwnd);
 }
 
-HWND hwndListView;
 DWORD WINAPI RefreshFile(LPVOID data) {
   HWND hwnd=(HWND)data;
   HMENU hMenu=GetMenu(hwnd);
-  bool aref=GetMenuState(hMenu, IDM_AREF, MF_BYCOMMAND) & MF_CHECKED;
+  //bool aref=GetMenuState(hMenu, IDM_AREF, MF_BYCOMMAND) & MF_CHECKED;
   EnableMenuItem(hMenu, IDM_AREF, MF_BYCOMMAND | MF_DISABLED);
   EnableMenuItem(hMenu, IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+  return 0;
+}
+
+
+void mkListView(HWND hWnd) {
+  // create the TreeView control
+  if (hwndListView == NULL) hwndListView=CreateListView(g_hInst, hWnd);
+  else ShowWindow(hwndListView, FALSE);
+
+  readCsv(g_filename, g_separator, hwndListView);
+  //initialize the TreeView control
+  InitListView(hwndListView);
+  // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
+  // get<0>=row, get<1>=text.size, get<2>=pixel width
+  //std::cout << "Widest cells for:";
+  for (size_t i=0; i < g_widestCol.size(); i++) {
+    //std::cout << '(' << get < 0 > (g_widestCol[i]) << ',' << i << ")=" << get < 1 > (g_widestCol[i]) << "ch, " << get < 2 > (g_widestCol[i]) << "px, ";
+    ListView_SetColumnWidth(hwndListView, i, 20+get < 2 > (g_widestCol[i]));
+  }
+  std::cout << std::endl;
+  ListViewToBottom(hwndListView);
+  ShowWindow(hwndListView, TRUE);
+}
+
+FILETIME CurrentLastWriteTime = { 0, 0 };
+void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
+  HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+
+  if (hFile != INVALID_HANDLE_VALUE) {
+    FILETIME LastWriteTime = { 0, 0 };
+    GetFileTime(hFile, NULL, NULL, &LastWriteTime);
+    CloseHandle(hFile);
+    std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
+
+    if (LastWriteTime.dwLowDateTime == CurrentLastWriteTime.dwLowDateTime && LastWriteTime.dwHighDateTime == CurrentLastWriteTime.dwHighDateTime) {
+      std::cout << "Has NOT been modified" << std::endl;
+      return;
+    }
+
+    CurrentLastWriteTime=LastWriteTime;
+    std::cout << "Has been modified" << std::endl;
+    mkListView(hWnd);
+  }
 }
 
 
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
-
   switch (uMessage) {
   case WM_CREATE:
-    // create the TreeView control
-    hwndListView=CreateListView(g_hInst, hWnd);
-    readCsv(g_filename, g_separator, hwndListView);
-    //initialize the TreeView control
-    InitListView(hwndListView);
-    // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
-    // get<0>=row, get<1>=text.size, get<2>=pixel width
-    std::cout << "Widest cells for:";
-    for (size_t i=0; i < g_widestCol.size(); i++) {
-      std::cout << '(' << get < 0 > (g_widestCol[i]) << ',' << i << ")=" << get < 1 > (g_widestCol[i]) << "ch, " << get < 2 > (g_widestCol[i]) << "px, ";
-      ListView_SetColumnWidth(hwndListView, i, 20+get < 2 > (g_widestCol[i]));
-    }
-    std::cout << std::endl;
-    ListViewToBottom(hwndListView);
+    mkListView(hWnd);
+    break;
+
+  case WM_KEYDOWN:
+    if (wParam == VK_ESCAPE) DestroyWindow(hWnd);
     break;
 
   case WM_NOTIFY:
-    return ListViewNotify(hWnd, lParam);
+    if (ListViewNotify(hWnd, wParam, lParam)) return 0;
+    else {
+      if (HIBYTE(GetKeyState(VK_ESCAPE)) != 0 && GetFocus() != hWnd) DestroyWindow(hWnd);
+    }
+    break;
 
   case WM_SIZE:
     ResizeListView(hwndListView, hWnd);
@@ -398,19 +454,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
   case WM_COMMAND:
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
     case IDM_REFR: {
-      //PMYDATA pData;
-      DWORD   dwThreadId;
-      HANDLE  hThread;
-
-//      hThread=CreateThread(NULL, 0, RefreshFile, NULL, (LPVOID)&hWnd, 0, &dwThreadId);
-      
-      if (hThread == NULL) {
-        std::cerr << "Error CreateThread\n";
-        return false;
-      }
-
-      WaitForSingleObject(hThread, 0);
-
+      mkListView(hWnd);
       break;
     }
 
@@ -418,9 +462,16 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
       if (GetMenuState(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND) & MF_CHECKED) {
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_UNCHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_ENABLED);
+        KillTimer(hWnd, 1);
       } else {
         CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
         EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
+        char *sri=getenv("REFRESH_INTERVAL");
+        UINT ri;
+        if (sri) ri=std::stoi(sri);
+        else ri=1000;
+        
+        SetTimer(hWnd, 1, ri, AutoRefresh);
       }
 
       break;

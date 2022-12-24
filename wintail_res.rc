@@ -5,20 +5,21 @@
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST    "wintail.manifest"
 IDI_MAINICON            ICON    DISCARDABLE     "wintail.ico"
+
 IDM_MAIN_MENU MENU DISCARDABLE 
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Refresh",       IDM_REFR
+        MENUITEM "&Refresh now",       IDM_REFR
         MENUITEM "&Auto-refresh",  IDM_AREF
-        MENUITEM SEPARATOR
-        MENUITEM "&Search/Filter", IDM_SEFI
+//        MENUITEM SEPARATOR
+//        MENUITEM "&Search/Filter", IDM_SEFI
         MENUITEM SEPARATOR
         MENUITEM "E&xit",          IDM_EXIT
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&About wintail...",          IDM_ABOUT
+        MENUITEM "&Some help about WinTail...",          IDM_ABOUT
     END
 END
 
@@ -29,22 +30,23 @@ BEGIN
         MENUITEM "&Refresh",       IDM_REFR
         MENUITEM "&Auto-refresh",  IDM_AREF
         MENUITEM SEPARATOR
-        MENUITEM "&Search/Filter", IDM_SEFI
-        MENUITEM SEPARATOR
+//        MENUITEM "&Search/Filter", IDM_SEFI
+//        MENUITEM SEPARATOR
         MENUITEM "E&xit",          IDM_EXIT
     END
 END
 
 
-IDD_ABOUT DIALOG DISCARDABLE  22, 17, 144, 75
+IDD_ABOUT DIALOG DISCARDABLE  22, 17, 230, 75
 STYLE DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
-CAPTION "About wintail"
+CAPTION "Some help about WinTail"
 FONT 8, "MS Sans Serif"
 BEGIN
-    CTEXT           "Wintail",-1,0,5,144,8
-    CTEXT           "The windows GUI tail for CSV files",-1,0,20,144,8
-    CTEXT           "(More or less)",-1,0,34,144,8
-    DEFPUSHBUTTON   "OK",IDOK,53,59,32,14,WS_GROUP
+    CTEXT          "Wintail. The windows GUI tail for CSV files (More or less)",-1,0,4,220,8
+    LTEXT          "Set the environment variable 'REFRESH_INTERVAL' in millisecond",-1,4,20,230,8
+    LTEXT          "  in order to modify the autorefresh frequency.",-1,4,30,230,8
+    LTEXT          "Default value is 2000 ms.",-1,4,40,230,8
+    DEFPUSHBUTTON "OK",IDOK,90,54,50,14,WS_GROUP
 END
 
 STRINGTABLE DISCARDABLE 
