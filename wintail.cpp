@@ -156,7 +156,7 @@ INT_PTR CALLBACK AboutDlgProc(HWND hDlg,
 }
 
 HWND hwndListView=NULL;
-LRESULT ListViewNotify(HWND, WPARAM wParam, LPARAM lParam) {
+LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
   LPNMHDR lpnmh=(LPNMHDR)lParam;
 
   if (lpnmh->hwndFrom != hwndListView) return 0;
@@ -213,7 +213,7 @@ LRESULT ListViewNotify(HWND, WPARAM wParam, LPARAM lParam) {
 size_t maxrow=29;
 unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
   g_sheet.clear();
-  std::cout << "Starting to load in memory of the file " << fname << std::endl;
+  //std::cout << "Starting to load in memory of the file " << fname << std::endl;
   char *smr=getenv("MAXROW");
   if (smr) maxrow=std::stoi(smr);
   // nuplet pour évaluer la largeur de chaque colonne
@@ -270,7 +270,7 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
     fp.close();
   }
 
-  std::cout << "End of the loading in memory of the file " << fname << std::endl;
+  //std::cout << "End of the loading in memory of the file " << fname << std::endl;
   return count;
 }
 
@@ -399,7 +399,7 @@ void mkListView(HWND hWnd) {
     //std::cout << '(' << get < 0 > (g_widestCol[i]) << ',' << i << ")=" << get < 1 > (g_widestCol[i]) << "ch, " << get < 2 > (g_widestCol[i]) << "px, ";
     ListView_SetColumnWidth(hwndListView, i, 20+get < 2 > (g_widestCol[i]));
   }
-  std::cout << std::endl;
+  //std::cout << std::endl;
   ListViewToBottom(hwndListView);
   ShowWindow(hwndListView, TRUE);
 }
@@ -412,15 +412,15 @@ void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
     FILETIME LastWriteTime = { 0, 0 };
     GetFileTime(hFile, NULL, NULL, &LastWriteTime);
     CloseHandle(hFile);
-    std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
+    //std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
 
     if (LastWriteTime.dwLowDateTime == CurrentLastWriteTime.dwLowDateTime && LastWriteTime.dwHighDateTime == CurrentLastWriteTime.dwHighDateTime) {
-      std::cout << "Has NOT been modified" << std::endl;
+      //std::cout << "Has NOT been modified" << std::endl;
       return;
     }
 
     CurrentLastWriteTime=LastWriteTime;
-    std::cout << "Has been modified" << std::endl;
+    //std::cout << "Has been modified" << std::endl;
     mkListView(hWnd);
   }
 }
@@ -516,7 +516,7 @@ BOOL InitApplication(HINSTANCE hInstance) {
   aReturn=RegisterClassEx( & wcex);
 
   if (aReturn == 0) {
-    std::cout << "aRet = 0 !!" << std::endl;
+    //std::cout << "aRet = 0 !!" << std::endl;
     WNDCLASS wc;
 
     wc.style=0;
