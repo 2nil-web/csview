@@ -10,12 +10,14 @@ IDM_MAIN_MENU MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Refresh now",       IDM_REFR
-        MENUITEM "&Auto-refresh",  IDM_AREF
-//        MENUITEM SEPARATOR
-//        MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM "&Open(TODO)",          IDM_SEFI
         MENUITEM SEPARATOR
-        MENUITEM "E&xit",          IDM_EXIT
+        MENUITEM "&Refresh now",         IDM_REFR
+        MENUITEM "&Auto-refresh",        IDM_AREF
+        MENUITEM SEPARATOR
+        MENUITEM "&Search/Filter(TODO)", IDM_SEFI
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                IDM_EXIT
     END
     POPUP "&Help"
     BEGIN
@@ -27,11 +29,13 @@ IDM_CONTEXT_MENU MENU DISCARDABLE
 BEGIN
     POPUP "Context Menu"
     BEGIN
+        MENUITEM "&Open(TODO)",    IDM_SEFI
+        MENUITEM SEPARATOR
         MENUITEM "&Refresh",       IDM_REFR
         MENUITEM "&Auto-refresh",  IDM_AREF
         MENUITEM SEPARATOR
-//        MENUITEM "&Search/Filter", IDM_SEFI
-//        MENUITEM SEPARATOR
+        MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM SEPARATOR
         MENUITEM "E&xit",          IDM_EXIT
     END
 END

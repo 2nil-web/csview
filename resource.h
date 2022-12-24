@@ -7,10 +7,11 @@
 #define IDM_CONTEXT_MENU                103
 #define IDI_DISK                        104
 
-#define IDM_REFR                        102
-#define IDM_AREF                        104
-#define IDM_SEFI                        106
-#define IDM_EXIT                        100
+#define IDM_OPEN                        112
+#define IDM_REFR                        114
+#define IDM_AREF                        116
+#define IDM_SEFI                        118
+#define IDM_EXIT                        110
 
-#define IDM_ABOUT                       110
+#define IDM_ABOUT                       124
 
