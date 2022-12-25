@@ -172,6 +172,7 @@ bool SetWinText(HWND hdlg, int item, std::string s) {
   return SetWinText(GetDlgItem(hdlg, item), s);
 }
 
+// A compléter
 INT_PTR CALLBACK SearchDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
   switch (uMessage) {
   case WM_INITDIALOG:
