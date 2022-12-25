@@ -250,7 +250,7 @@ time_t get_mtime(std::string fname) {
   return last_mtime;
 }
 
-Pas plus de 30 colonnes
+// Pas plus de 30 colonnes ... Je sais pas pourquoi ...
 size_t maxcell=29;
 unsigned int readCsv(std::string fname, HWND hwnd, char sep=0) {
   g_sheet.clear();
@@ -339,7 +339,7 @@ BOOL InitListView(HWND hwndListView) {
   size_t i;
 
   // Empty the list
-  for (i=0; i <= 100; i++) ListView_DeleteColumn(hwndListView, 0);
+  for (i=0; i < 100; i++) ListView_DeleteColumn(hwndListView, 0);
   ListView_DeleteAllItems(hwndListView);
 
   //initialize the columns
@@ -353,11 +353,16 @@ BOOL InitListView(HWND hwndListView) {
   ListView_InsertColumn(hwndListView, 0, &lvColumn);
   //std::cout << "g_maxCol " << g_maxCol << std::endl;
 
-  //std::cout << __LINE__ << std::endl;
-  for (i=0; i < g_maxCol; i++) {
-    //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
-    lvColumn.pszText=(char * ) g_header[i].c_str();
+  if (g_maxCol == 1) {
+    lvColumn.pszText=(char * ) "Text";
     ListView_InsertColumn(hwndListView, i+1, &lvColumn);
+  } else {
+  //std::cout << __LINE__ << std::endl;
+    for (i=0; i < g_maxCol; i++) {
+      //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
+      lvColumn.pszText=(char * ) g_header[i].c_str();
+      ListView_InsertColumn(hwndListView, i+1, &lvColumn);
+    }
   }
 
   //std::cout << __LINE__ << std::endl;
@@ -463,15 +468,20 @@ void mkListView(HWND hWnd) {
   // get<0>=row, get<1>=text.size, get<2>=pixel width
   //std::cout << "Widest cells for:";
   //size_t rw;
-  size_t sumch=0, sumpx=0, ch, px;
-  for (size_t i=0; i < g_widestCol.size(); i++) {
-    //rw=get < 0 > (g_widestCol[i]);
-    ch=get < 1 > (g_widestCol[i]);
-    px=get < 2 > (g_widestCol[i]);
-    //std::cout << '(' << i << ", " << rw << ")=" << ch << " ch, " << px << "px, ";
-    sumch += ch;
-    sumpx += px;
-    ListView_SetColumnWidth(hwndListView, i, 20+px);
+  if (g_maxCol == 1) {
+    ListView_SetColumnWidth(hwndListView, 0, 50);
+    ListView_SetColumnWidth(hwndListView, 1, 600);
+  } else {
+    size_t sumch=0, sumpx=0, ch, px;
+    for (size_t i=0; i < g_widestCol.size(); i++) {
+      //rw=get < 0 > (g_widestCol[i]);
+      ch=get < 1 > (g_widestCol[i]);
+      px=get < 2 > (g_widestCol[i]);
+      //std::cout << '(' << i << ", " << rw << ")=" << ch << " ch, " << px << "px, ";
+      sumch += ch;
+      sumpx += px;
+      ListView_SetColumnWidth(hwndListView, i, 20+px);
+    }
   }
   //std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
 

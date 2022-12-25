@@ -6,16 +6,11 @@ define a2p
   $(eval PATH=$(shell [ -d "${1}" ] && echo ${1}:)${PATH})
 endef
 
-WSDIR=/usr/local/wsserver
-#CPPFLAGS += -U VERBOSE_MODE
-CPPFLAGS += -I $(WSDIR)/include -I $(WSDIR)/include/wsserver
 CFLAGS += -Wall -Wextra -std=c18 -pedantic
 CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 #LDFLAGS += -static-libgcc -static-libstdc++
-LDFLAGS  += -static
-LDFLAGS  +=  -L $(WSDIR)/lib
+#LDFLAGS  += -static
 LDFLAGS  += -g -Os
-LDLIBS   +=  -lws
 
 PREFIX=wintail
 SRCS=${PREFIX}.cpp
@@ -36,7 +31,7 @@ endif
 
 ifeq (${MSYSTEM},UCRT64)
 PATH:=/ucrt64/bin:${PATH}
-LDFLAGS += -static
+#LDFLAGS += -static
 endif
 
 # CLANG n'accepte pas les fichiers en ISO-8859
@@ -49,7 +44,6 @@ LDFLAGS += -pthread -static
 else
 CC=gcc
 CXX=g++
-CPPFLAGS += -I /usr/local/include/wsserver
 LDFLAGS += -L /usr/local/lib64
 endif
 
@@ -74,8 +68,6 @@ OBJS += ${PREFIX}_res.o
 ECHO=echo -e
 TARGETS+=${PREFIX}${EXEXT}
 else
-CPPFLAGS += -I /usr/local/include/wsserver
-#LDFLAGS += -L /usr/local/lib64
 MAGICK=
 UPX=upx
 RC=
