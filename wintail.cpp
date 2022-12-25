@@ -32,6 +32,8 @@
 
 #define ID_LISTVIEW  2000
 
+#define trc std::cout << "LINE " << __LINE__ << std::endl;
+
 // Local Function Prototypes
 #define ErrorHandler() ErrorHandlerEx(__LINE__, __FILE__)
 void ErrorHandlerEx(WORD, LPSTR);
@@ -222,15 +224,48 @@ LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
   return 0;
 }
 
-size_t maxrow=29;
-unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
+time_t curr_mtime=0;
+// Convert win32api FILETIME to unix time_t
+time_t FT2t(FILETIME ft) {
+  return ((LONGLONG)ft.dwLowDateTime + ((LONGLONG)(ft.dwHighDateTime) << 32LL)-116444736000000000LL)/10000000;
+}
+
+// Get last mtime of a file using stat and GetFileTime, return the highest value (i.e. the most recent time)
+time_t get_mtime(std::string fname) {
+  struct stat st;
+  time_t last_mtime;
+  stat(fname.c_str(), &st);
+
+  HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+  if (hFile != INVALID_HANDLE_VALUE) {
+    FILETIME LastWriteTime = { 0, 0 };
+    GetFileTime(hFile, NULL, NULL, &LastWriteTime);
+    CloseHandle(hFile);
+    last_mtime=FT2t(LastWriteTime);
+  }
+
+  if (st.st_mtime > last_mtime) return st.st_mtime;
+
+  return last_mtime;
+}
+
+Pas plus de 30 colonnes
+size_t maxcell=29;
+unsigned int readCsv(std::string fname, HWND hwnd, char sep=0) {
   g_sheet.clear();
+  g_header.clear();
+  g_widestCol.clear();
   //std::cout << "Starting to load in memory of the file " << fname << std::endl;
-  char *smr=getenv("MAXROW");
-  if (smr) maxrow=std::stoi(smr);
+  char *smr=getenv("MAXCOL");
+  if (smr) maxcell=std::stoi(smr);
   // nuplet pour évaluer la largeur de chaque colonne
   // Le 1er nuplet (tuple) c'est pour la largeur de la 1ére colonne qui indique le numéro de ligne ...
   g_widestCol.push_back(std::make_tuple(0, 0, 0));
+  g_maxCol=0;
+
+  // Get last modification time of the file, in case of needed refresh
+  curr_mtime=get_mtime(fname);
 
   unsigned int count=0;
   std::ifstream fp(fname);
@@ -245,6 +280,7 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
       //std::cout << ln << std::endl;
       row.clear();
       size_t iPos=2;
+      if (sep == 0) iPos=1;
 
       std::string countS=std::to_string(count+1);
       int lvgsw=ListView_GetStringWidth(hwnd, countS.c_str());
@@ -253,7 +289,12 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
         g_widestCol[0]=std::make_tuple(count, countS.size(), lvgsw);
       }
 
-      while (std::getline(ss, cell, sep)) {
+      for(;;) {
+        if (sep == 0) {
+          if (!std::getline(ss, cell)) break;
+        } else {
+          if (!std::getline(ss, cell, sep)) break;
+        }
         row.push_back(cell);
         //std::cout << "Count " << count << ", cell " << cell << std::endl;
 
@@ -269,8 +310,8 @@ unsigned int readCsv(std::string fname, char sep, HWND hwnd) {
           iPos++;
         }
 
-        //std::cout << "maxrow:" << maxrow << ", row.size():" << row.size() << ", g_maxCol:" << g_maxCol << std::endl;
-        if (row.size() > maxrow) break;
+        //std::cout << "maxcell:" << maxcell << ", row.size():" << row.size() << ", g_maxCol:" << g_maxCol << std::endl;
+        if (row.size() > maxcell) break;
       }
 
       if (row.size() > g_maxCol) g_maxCol=row.size();
@@ -295,24 +336,26 @@ BOOL InsertListViewItems(HWND hwndListView) {
 }
 
 BOOL InitListView(HWND hwndListView) {
-  LV_COLUMN lvColumn;
   size_t i;
 
-  //empty the list
+  // Empty the list
+  for (i=0; i <= 100; i++) ListView_DeleteColumn(hwndListView, 0);
   ListView_DeleteAllItems(hwndListView);
 
   //initialize the columns
+  LV_COLUMN lvColumn;
   lvColumn.mask=LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
   lvColumn.fmt=LVCFMT_LEFT;
   lvColumn.cx=120;
 
   //std::cout << __LINE__ << std::endl;
-  lvColumn.pszText=(char * )
-  "#";
-  ListView_InsertColumn(hwndListView, 0, & lvColumn);
+  lvColumn.pszText=(char * )"#";
+  ListView_InsertColumn(hwndListView, 0, &lvColumn);
+  //std::cout << "g_maxCol " << g_maxCol << std::endl;
 
   //std::cout << __LINE__ << std::endl;
   for (i=0; i < g_maxCol; i++) {
+    //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
     lvColumn.pszText=(char * ) g_header[i].c_str();
     ListView_InsertColumn(hwndListView, i+1, &lvColumn);
   }
@@ -395,59 +438,56 @@ DWORD WINAPI RefreshFile(LPVOID data) {
   return 0;
 }
 
+bool is_not_csv(std::string fn) {
+  //store the position of last '.' in the file name
+  size_t pos=fn.find_last_of(".");
+  //store the characters after the '.' from the file_name string
+  if (pos == std::string::npos) return true;
+
+  std::string ext=fn.substr(pos+1);
+  if (ext == "csv") return false;
+  return true;
+}
 
 void mkListView(HWND hWnd) {
   // create the TreeView control
   if (hwndListView == NULL) hwndListView=CreateListView(g_hInst, hWnd);
   else ShowWindow(hwndListView, FALSE);
 
-  readCsv(g_filename, g_separator, hwndListView);
-  //initialize the TreeView control
+  char sep=g_separator;
+  if (is_not_csv(g_filename)) sep=0;
+
+  readCsv(g_filename, hwndListView, sep);
   InitListView(hwndListView);
   // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
   // get<0>=row, get<1>=text.size, get<2>=pixel width
   //std::cout << "Widest cells for:";
+  //size_t rw;
+  size_t sumch=0, sumpx=0, ch, px;
   for (size_t i=0; i < g_widestCol.size(); i++) {
-    //std::cout << '(' << get < 0 > (g_widestCol[i]) << ',' << i << ")=" << get < 1 > (g_widestCol[i]) << "ch, " << get < 2 > (g_widestCol[i]) << "px, ";
-    ListView_SetColumnWidth(hwndListView, i, 20+get < 2 > (g_widestCol[i]));
+    //rw=get < 0 > (g_widestCol[i]);
+    ch=get < 1 > (g_widestCol[i]);
+    px=get < 2 > (g_widestCol[i]);
+    //std::cout << '(' << i << ", " << rw << ")=" << ch << " ch, " << px << "px, ";
+    sumch += ch;
+    sumpx += px;
+    ListView_SetColumnWidth(hwndListView, i, 20+px);
   }
+  //std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
+
+
   //std::cout << std::endl;
   ListViewToBottom(hwndListView);
   ShowWindow(hwndListView, TRUE);
 }
 
-FILETIME CurrentLastWriteTime = { 0, 0 };
-time_t curr_mtime=0;
 void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
-  bool modified=false;
+  time_t last_mtime=get_mtime(g_filename);
 
-  struct stat st;
-  stat(g_filename.c_str(), &st);
-  if (curr_mtime != st.st_ctime) {
-    curr_mtime=st.st_ctime;
-    //std::cout << "stat has detected modification." << std::endl;
-    modified=true;
-  } else {
-    HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (hFile != INVALID_HANDLE_VALUE) {
-      FILETIME LastWriteTime = { 0, 0 };
-      GetFileTime(hFile, NULL, NULL, &LastWriteTime);
-      CloseHandle(hFile);
-      //std::cout << "curr " << CurrentLastWriteTime.dwLowDateTime << ", " << CurrentLastWriteTime.dwHighDateTime << ", last " << LastWriteTime.dwLowDateTime << ", " << LastWriteTime.dwHighDateTime << std::endl;
-
-      if (LastWriteTime.dwLowDateTime == CurrentLastWriteTime.dwLowDateTime && LastWriteTime.dwHighDateTime == CurrentLastWriteTime.dwHighDateTime) {
-        //std::cout << "Has NOT been modified" << std::endl;
-        return;
-      }
-
-      CurrentLastWriteTime=LastWriteTime;
-      //std::cout << "GetFileTime has detected modification." << std::endl;
-      modified=true;
-    }
+  if (curr_mtime != last_mtime) {
+    curr_mtime=last_mtime;
+    mkListView(hWnd);
   }
-
-  if (modified) mkListView(hWnd);
 }
 
 
@@ -501,7 +541,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
       ZeroMemory(&ofn, sizeof(OPENFILENAME));
       ofn.lStructSize=sizeof(OPENFILENAME);
       ofn.hwndOwner=hWnd;
-      ofn.lpstrFilter="Fichier csv\0*.csv\0\0";
+      ofn.lpstrFilter="Fichier csv\0*.csv\0Tout fichier\0*.*\0\0";
       ofn.nFilterIndex=0;
 
       //GetDlgItemText(hDlg, IDC_SUBFILE, fn, MAX_PATH);
@@ -510,7 +550,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 
       ofn.lpstrFileTitle=NULL;
       ofn.lpstrInitialDir=NULL;
-      ofn.lpstrTitle="Fichier csv";
+      ofn.lpstrTitle="Fichier texte ou csv";
       ofn.Flags=OFN_FILEMUSTEXIST|OFN_SHOWHELP;
 
       if (GetOpenFileName(&ofn)) {
@@ -610,7 +650,10 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   if (args.size() > 1) g_filename=args[1];
   if (args.size() > 2) g_autoref=args[2] == "1" || args[2] == "on" || args[2] == "true"?true:false;
   if (args.size() > 3) g_refitv=std::stoi(args[3]);
-  if (args.size() > 4) g_separator=args[4][0];
+  if (args.size() > 4) {
+    if (args[4] == "nosep") g_separator='\0';
+    else g_separator=args[4][0];
+  }
 
   // Required to use the common controls (not so sure as of 2022)
   InitCommonControls();
