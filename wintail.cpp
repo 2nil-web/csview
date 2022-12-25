@@ -145,10 +145,86 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 
 }
 
-INT_PTR CALLBACK AboutDlgProc(HWND hDlg,
-  UINT uMessage,
-  WPARAM wParam,
-  LPARAM /*lParam*/ ) {
+
+std::string GetWinText(HWND hwnd) {
+  std::string ret("");
+  int l=GetWindowTextLength(hwnd);
+
+  if (l > 0) {
+    char *s=new char [l+2];
+    if (GetWindowText(hwnd, s, l+1) > 0) {
+      ret=std::string(s);
+    }
+  }
+
+  return ret;
+}
+
+std::string GetWinText(HWND hdlg, int item) {
+  return GetWinText(GetDlgItem(hdlg, item));
+}
+
+bool SetWinText(HWND hwnd, std::string s) {
+  return SetWindowText(hwnd, s.c_str());
+}
+
+bool SetWinText(HWND hdlg, int item, std::string s) {
+  return SetWinText(GetDlgItem(hdlg, item), s);
+}
+
+INT_PTR CALLBACK SearchDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
+  switch (uMessage) {
+  case WM_INITDIALOG:
+    return TRUE;
+
+  case WM_COMMAND:
+    switch (wParam) {
+    case IDOK:
+      EndDialog(hDlg, IDOK);
+      break;
+
+    case IDFILT:
+      EndDialog(hDlg, IDOK);
+      break;
+
+    case IDCANCEL:
+      EndDialog(hDlg, IDOK);
+      break;
+    }
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+UINT g_refitv=2000;
+INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
+  switch (uMessage) {
+  case WM_INITDIALOG:
+    SendDlgItemMessage(hDlg, IDC_CSVSEP, EM_SETLIMITTEXT, 1, 0);
+    SetWinText(hDlg, IDC_AUTOREF, std::to_string(g_refitv));
+    SetWinText(hDlg, IDC_CSVSEP, std::string(1, g_separator));
+    return TRUE;
+
+  case WM_COMMAND:
+    switch (wParam) {
+    case IDOK:
+      g_refitv=std::stoi(GetWinText(hDlg, IDC_AUTOREF));
+      g_separator=GetWinText(hDlg, IDC_CSVSEP)[0];
+      EndDialog(hDlg, IDOK);
+      break;
+
+    case IDCANCEL:
+      EndDialog(hDlg, IDOK);
+      break;
+    }
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
   switch (uMessage) {
   case WM_INITDIALOG:
     return TRUE;
@@ -501,7 +577,6 @@ void AutoRefresh(HWND hWnd, UINT , UINT_PTR , DWORD ) {
 }
 
 
-UINT g_refitv=2000;
 void do_autoref(HWND hWnd, bool do_it) {
   if (do_it) {
     CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
@@ -587,6 +662,14 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 
     case IDM_HELP:
       MessageBox(NULL, InfMsg.c_str(), "WinTail", MB_OK);
+      break;
+
+    case IDM_SEFI:
+      DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SEARCH), hWnd, SearchDlgProc);
+      break;
+
+    case IDM_CONFIG:
+      DialogBox(g_hInst, MAKEINTRESOURCE(IDD_CONFIG), hWnd, ConfigDlgProc);
       break;
 
     case IDM_ABOUT:
