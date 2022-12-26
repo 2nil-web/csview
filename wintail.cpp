@@ -388,7 +388,7 @@ unsigned int readCsv(std::string fname, HWND hwnd, char sep=0) {
         }
 
         //std::cout << "maxcell:" << maxcell << ", row.size():" << row.size() << ", g_maxCol:" << g_maxCol << std::endl;
-        if (row.size() > maxcell) break;
+//        if (row.size() > maxcell) break;
       }
 
       if (row.size() > g_maxCol) g_maxCol=row.size();
