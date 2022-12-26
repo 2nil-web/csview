@@ -44,7 +44,7 @@ LDFLAGS += -pthread -static
 else
 CC=gcc
 CXX=g++
-LDFLAGS += -L /usr/local/lib64
+#LDFLAGS += -L /usr/local/lib64
 endif
 
 EXEXT=.exe

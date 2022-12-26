@@ -310,7 +310,7 @@ time_t FT2t(FILETIME ft) {
 // Get last mtime of a file using stat and GetFileTime, return the highest value (i.e. the most recent time)
 time_t get_mtime(std::string fname) {
   struct stat st;
-  time_t last_mtime;
+  time_t last_mtime=0;
   stat(fname.c_str(), &st);
 
   HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -414,7 +414,6 @@ BOOL InsertListViewItems(HWND hwndListView) {
 
 BOOL InitListView(HWND hwndListView) {
   size_t i;
-
   // Empty the list
   for (i=0; i < 100; i++) ListView_DeleteColumn(hwndListView, 0);
   ListView_DeleteAllItems(hwndListView);
@@ -549,7 +548,8 @@ void mkListView(HWND hWnd) {
     ListView_SetColumnWidth(hwndListView, 0, 50);
     ListView_SetColumnWidth(hwndListView, 1, 600);
   } else {
-    size_t sumch=0, sumpx=0, ch, px;
+    size_t sumch=0, sumpx=0;
+    size_t ch, px;
     for (size_t i=0; i < g_widestCol.size(); i++) {
       //rw=get < 0 > (g_widestCol[i]);
       ch=get < 1 > (g_widestCol[i]);
@@ -559,8 +559,8 @@ void mkListView(HWND hWnd) {
       sumpx += px;
       ListView_SetColumnWidth(hwndListView, i, 20+px);
     }
+    //std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
   }
-  //std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
 
 
   //std::cout << std::endl;
