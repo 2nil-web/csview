@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <winuser.h>
 #include <commctrl.h>
 #include <tchar.h>
 
@@ -20,7 +21,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include "resource.h"
 
@@ -35,79 +36,50 @@
 #define trc std::cout << "LINE " << __LINE__ << std::endl;
 
 // Local Function Prototypes
-#define ErrorHandler() ErrorHandlerEx(__LINE__, __FILE__)
-void ErrorHandlerEx(WORD, LPSTR);
-
 // Global Variables
 HINSTANCE g_hInst;
 TCHAR g_szClassName[]=TEXT("wintailClass");
 // Nom du fichier csv à visualiser
-std::string g_filename;
+std::wstring g_filename;
 bool g_autoref=true;
 // Séparateur du fichier csv (par défaut ;)
-char g_separator=';';
+wchar_t g_separator=';';
 // Nombre maximum de colonne dans le csv
 size_t g_maxCol=0;
 // Entête du csv
-std::vector < std::string > g_header;
+std::vector < std::wstring > g_header;
 // Contenu du csv
-std::vector < std::vector < std::string >> g_sheet;
+std::vector < std::vector < std::wstring >> g_sheet;
 // Pour calculer la plus large taille de chaque colonne : get<0>=row, get<1>=text.size, get<2>=pixel width
 std::vector <std::tuple < size_t, size_t, int >> g_widestCol;
 
+std::wstring s2ws(const std::string& str)
+{
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring wstrTo(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+    return wstrTo;
+}
 std::string InfMsg=R"(WinTail displays the content of a csv file.
 At least one argument to provide the name of file to view.
 A second argument (true, on, 1 or anything else for false) to indicate if constant file polling is required (this is the default).
 A third argument to modify the polling interval in millisecond (default is 2000 ms). Value is overwritten by environment variable 'REFRESH_INTERVAL'.
 A fourth argument to define the csv separator (default is ';').)";
 
-void ErrorHandlerEx(WORD wLine, LPSTR lpszFile) {
-  LPVOID lpvMessage;
-  DWORD dwError;
-  TCHAR szBuffer[256];
-
-  // Allow FormatMessage() to look up the error code returned by GetLastError
-  dwError=FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-    FORMAT_MESSAGE_FROM_SYSTEM,
-    NULL,
-    GetLastError(),
-    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-    (LPTSTR) & lpvMessage,
-    0,
-    NULL);
-
-  // Check to see if an error occurred calling FormatMessage()
-  if (0 == dwError) {
-    _sntprintf_s(szBuffer, _countof(szBuffer), _TRUNCATE,
-      TEXT("An error occurred calling FormatMessage().") TEXT("Error Code %d"),
-      GetLastError());
-    MessageBox(NULL,
-      szBuffer,
-      TEXT("Generic"),
-      MB_ICONSTOP | MB_ICONEXCLAMATION);
-    return;
-  }
-
-  // Display the error information along with the place the error happened.
-  _sntprintf_s(szBuffer, _countof(szBuffer), _TRUNCATE,
-    TEXT("Generic, Line=%d, File=%s"), wLine, lpszFile);
-  MessageBox(NULL, (char * ) lpvMessage, szBuffer, MB_ICONEXCLAMATION | MB_OK);
-}
-
 std::vector<std::wstring> cmdLineToWsVec() {
   LPWSTR *wav;
   int ac;
   wav=CommandLineToArgvW(GetCommandLineW(), &ac);
   return std::vector<std::wstring>(wav, wav+ac);
-//  std::vector<std::string> args=std::vector<std::string>(wav, wav+ac);
+//  std::vector<std::wstring> args=std::vector<std::wstring>(wav, wav+ac);
 }
 
 std::vector<std::string> cmdLineToSVec() {
-  std::vector<std::wstring> wsv=cmdLineToWsVec();
-  std::vector<std::string> sv;
-  for(auto ws:wsv) sv.push_back(std::string(ws.begin(), ws.end()));
+    std::vector<std::wstring> wsv = cmdLineToWsVec();
+    std::vector<std::string> sv;
+    for (auto ws : wsv) sv.push_back(std::string(ws.begin(), ws.end()));
 
-  return sv;
+    return sv;
 }
 
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
@@ -146,29 +118,29 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 }
 
 
-std::string GetWinText(HWND hwnd) {
-  std::string ret("");
+std::wstring GetWinText(HWND hwnd) {
+  std::wstring ret(L"");
   int l=GetWindowTextLength(hwnd);
 
   if (l > 0) {
-    char *s=new char [l+2];
+    wchar_t *s=new wchar_t [l+2];
     if (GetWindowText(hwnd, s, l+1) > 0) {
-      ret=std::string(s);
+      ret=std::wstring(s);
     }
   }
 
   return ret;
 }
 
-std::string GetWinText(HWND hdlg, int item) {
+std::wstring GetWinText(HWND hdlg, int item) {
   return GetWinText(GetDlgItem(hdlg, item));
 }
 
-bool SetWinText(HWND hwnd, std::string s) {
+bool SetWinText(HWND hwnd, std::wstring s) {
   return SetWindowText(hwnd, s.c_str());
 }
 
-bool SetWinText(HWND hdlg, int item, std::string s) {
+bool SetWinText(HWND hdlg, int item, std::wstring s) {
   return SetWinText(GetDlgItem(hdlg, item), s);
 }
 
@@ -203,115 +175,123 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /
   switch (uMessage) {
   case WM_INITDIALOG:
     SendDlgItemMessage(hDlg, IDC_CSVSEP, EM_SETLIMITTEXT, 1, 0);
-    SetWinText(hDlg, IDC_AUTOREF, std::to_string(g_refitv));
-    SetWinText(hDlg, IDC_CSVSEP, std::string(1, g_separator));
+    SetWinText(hDlg, IDC_AUTOREF, std::to_wstring(g_refitv));
+    SetWinText(hDlg, IDC_CSVSEP, std::wstring(1, g_separator));
     return TRUE;
 
   case WM_COMMAND:
-    switch (wParam) {
-    case IDOK:
-      g_refitv=std::stoi(GetWinText(hDlg, IDC_AUTOREF));
-      g_separator=GetWinText(hDlg, IDC_CSVSEP)[0];
-      EndDialog(hDlg, IDOK);
-      break;
+      switch (wParam) {
+      case IDOK:
+          g_refitv = std::stoi(GetWinText(hDlg, IDC_AUTOREF));
+          g_separator = GetWinText(hDlg, IDC_CSVSEP)[0];
+          EndDialog(hDlg, IDOK);
+          break;
 
-    case IDCANCEL:
-      EndDialog(hDlg, IDOK);
-      break;
-    }
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
-  switch (uMessage) {
-  case WM_INITDIALOG:
-    return TRUE;
-
-  case WM_COMMAND:
-    switch (wParam) {
-    case IDOK:
-      EndDialog(hDlg, IDOK);
-      break;
-
-    case IDCANCEL:
-      EndDialog(hDlg, IDOK);
-      break;
-    }
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-HWND hwndListView=NULL;
-LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
-  LPNMHDR lpnmh=(LPNMHDR)lParam;
-
-  if (lpnmh->hwndFrom != hwndListView) return 0;
-
-  switch (lpnmh->code) {
-    case LVN_GETDISPINFO: {
-      //std::cout << "VK_ESCAPE " << VK_ESCAPE << ", wParam " << wParam << ", lParam " << lParam << ", Notif code " << lpnmh->code << std::endl;
-      LV_DISPINFO * lpdi=(LV_DISPINFO * ) lParam;
-
-      if (lpdi -> item.iSubItem == 0) { // 1ére colonne
-        if (lpdi -> item.mask & LVIF_TEXT) {
-          if ((int) g_sheet.size() > lpdi -> item.iItem && g_sheet[lpdi -> item.iItem].size() > 0) {
-            _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, std::to_string(lpdi -> item.iItem+1).c_str(), _TRUNCATE);
-          } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
-        }
-
-        //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
-      } else { // Colonnes suivantes
-        if (lpdi -> item.mask & LVIF_TEXT) {
-          if ((int) g_sheet.size() > lpdi -> item.iItem && (int) g_sheet[lpdi -> item.iItem].size() >= lpdi -> item.iSubItem) {
-            _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, g_sheet[lpdi -> item.iItem][lpdi -> item.iSubItem-1].c_str(), _TRUNCATE);
-          } else _tcsncpy_s(lpdi -> item.pszText, lpdi -> item.cchTextMax, "", _TRUNCATE);
-        }
+      case IDCANCEL:
+          EndDialog(hDlg, IDOK);
+          break;
       }
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/) {
+    switch (uMessage) {
+    case WM_INITDIALOG:
+        return TRUE;
+
+    case WM_COMMAND:
+        switch (wParam) {
+        case IDOK:
+            EndDialog(hDlg, IDOK);
+            break;
+
+        case IDCANCEL:
+            EndDialog(hDlg, IDOK);
+            break;
+        }
+        return TRUE;
     }
-    return 1;
+
+    return FALSE;
+}
+
+HWND hwndListView = NULL;
+LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
+    LPNMHDR lpnmh = (LPNMHDR)lParam;
+
+    if (lpnmh->hwndFrom != hwndListView) return 0;
+
+    switch (lpnmh->code) {
+    case LVN_GETDISPINFO: {
+        //std::cout << "VK_ESCAPE " << VK_ESCAPE << ", wParam " << wParam << ", lParam " << lParam << ", Notif code " << lpnmh->code << std::endl;
+        LV_DISPINFO* lpdi = (LV_DISPINFO*)lParam;
+
+        if (lpdi->item.iSubItem == 0) { // 1ére colonne
+            if (lpdi->item.mask & LVIF_TEXT) {
+                if ((int)g_sheet.size() > lpdi->item.iItem && g_sheet[lpdi->item.iItem].size() > 0) {
+                    _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, std::to_wstring(lpdi->item.iItem + 1).c_str(), _TRUNCATE);
+                }
+                else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
+            }
+
+            //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
+        }
+        else { // Colonnes suivantes
+            if (lpdi->item.mask & LVIF_TEXT) {
+                if ((int)g_sheet.size() > lpdi->item.iItem && (int)g_sheet[lpdi->item.iItem].size() >= lpdi->item.iSubItem) {
+                    _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, g_sheet[lpdi->item.iItem][lpdi->item.iSubItem - 1].c_str(), _TRUNCATE);
+                }
+                else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
+            }
+        }
+    }
+                        return 1;
 
     case LVN_ODCACHEHINT: {
-      /*
-      LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
-      This sample doesn't use this notification, but this is sent when the 
-      ListView is about to ask for a range of items. On this notification, 
-      you should load the specified items into your local cache. It is still 
-      possible to get an LVN_GETDISPINFO for an item that has not been cached, 
-      therefore, your application must take into account the chance of this 
-      occurring.
-      */
+        /*
+        LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
+        This sample doesn't use this notification, but this is sent when the
+        ListView is about to ask for a range of items. On this notification,
+        you should load the specified items into your local cache. It is still
+        possible to get an LVN_GETDISPINFO for an item that has not been cached,
+        therefore, your application must take into account the chance of this
+        occurring.
+        */
     }
-    return 1;
+                        return 1;
 
     case LVN_ODFINDITEM: {
-      /*
-      LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
-      This sample doesn't use this notification, but this is sent when the 
-      ListView needs a particular item. Return -1 if the item is not found.
-      */
+        /*
+        LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
+        This sample doesn't use this notification, but this is sent when the
+        ListView needs a particular item. Return -1 if the item is not found.
+        */
     }
-    return 1;
-  }
+                       return 1;
+    }
 
-  return 0;
+    return 0;
 }
 
-time_t curr_mtime=0;
+time_t curr_mtime = 0;
 // Convert win32api FILETIME to unix time_t
 time_t FT2t(FILETIME ft) {
-  return ((LONGLONG)ft.dwLowDateTime + ((LONGLONG)(ft.dwHighDateTime) << 32LL)-116444736000000000LL)/10000000;
+    return ((LONGLONG)ft.dwLowDateTime + ((LONGLONG)(ft.dwHighDateTime) << 32LL) - 116444736000000000LL) / 10000000;
+}
+
+std::string ws(std::wstring w) {
+    return std::string(w.begin(), w.end());
 }
 
 // Get last mtime of a file using stat and GetFileTime, return the highest value (i.e. the most recent time)
-time_t get_mtime(std::string fname) {
+time_t get_mtime(std::wstring fname) {
   struct stat st;
   time_t last_mtime=0;
-  stat(fname.c_str(), &st);
+  
+  stat(ws(fname).c_str(), &st);
 
   HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -326,16 +306,30 @@ time_t get_mtime(std::string fname) {
 
   return last_mtime;
 }
+std::string sgetenv(const std::string ev) {
+  std::string s="";
+  char *buf=nullptr;
+  size_t sz=0;
+
+  if (_dupenv_s(&buf, &sz, ev.c_str()) == 0 && buf != nullptr) {
+    s=buf;
+    free(buf);
+  }
+
+  return s;
+}
+
 
 // Pas plus de 30 colonnes ... Je sais pas pourquoi ...
 size_t maxcell=29;
-unsigned int readCsv(std::string fname, HWND hwnd, char sep=0) {
+unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
   g_sheet.clear();
   g_header.clear();
   g_widestCol.clear();
   //std::cout << "Starting to load in memory of the file " << fname << std::endl;
-  char *smr=getenv("MAXCOL");
-  if (smr) maxcell=std::stoi(smr);
+  std::string smr=sgetenv("MAXCOL");
+
+  if (smr != "") maxcell = std::stoi(smr);
   // nuplet pour évaluer la largeur de chaque colonne
   // Le 1er nuplet (tuple) c'est pour la largeur de la 1ére colonne qui indique le numéro de ligne ...
   g_widestCol.push_back(std::make_tuple(0, 0, 0));
@@ -345,21 +339,21 @@ unsigned int readCsv(std::string fname, HWND hwnd, char sep=0) {
   curr_mtime=get_mtime(fname);
 
   unsigned int count=0;
-  std::ifstream fp(fname);
+  std::wifstream fp(fname);
 
   if (fp.is_open()) {
-    std::string ln, cell;
-    std::vector < std::string > row;
+    std::wstring ln, cell;
+    std::vector < std::wstring > row;
     RECT rc;
 
     while (std::getline(fp, ln)) {
-      std::stringstream ss(ln);
+      std::wstringstream ss(ln);
       //std::cout << ln << std::endl;
       row.clear();
       size_t iPos=2;
       if (sep == 0) iPos=1;
 
-      std::string countS=std::to_string(count+1);
+      std::wstring countS=std::to_wstring(count+1);
       int lvgsw=ListView_GetStringWidth(hwnd, countS.c_str());
 
       if (lvgsw > std::get < 2 > (g_widestCol[0])) {
@@ -425,18 +419,18 @@ BOOL InitListView(HWND hwndListView) {
   lvColumn.cx=120;
 
   //std::cout << __LINE__ << std::endl;
-  lvColumn.pszText=(char * )"#";
+  lvColumn.pszText=(wchar_t * )"#";
   ListView_InsertColumn(hwndListView, 0, &lvColumn);
   //std::cout << "g_maxCol " << g_maxCol << std::endl;
 
   if (g_maxCol == 1) {
-    lvColumn.pszText=(char * ) "Text";
+    lvColumn.pszText=(wchar_t * ) "Text";
     ListView_InsertColumn(hwndListView, i+1, &lvColumn);
   } else {
   //std::cout << __LINE__ << std::endl;
     for (i=0; i < g_maxCol; i++) {
       //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
-      lvColumn.pszText=(char * ) g_header[i].c_str();
+      lvColumn.pszText=(wchar_t * ) g_header[i].c_str();
       ListView_InsertColumn(hwndListView, i+1, &lvColumn);
     }
   }
@@ -519,14 +513,14 @@ DWORD WINAPI RefreshFile(LPVOID data) {
   return 0;
 }
 
-bool is_not_csv(std::string fn) {
+bool is_not_csv(std::wstring fn) {
   //store the position of last '.' in the file name
-  size_t pos=fn.find_last_of(".");
+  size_t pos=fn.find_last_of(L".");
   //store the characters after the '.' from the file_name string
-  if (pos == std::string::npos) return true;
+  if (pos == std::wstring::npos) return true;
 
-  std::string ext=fn.substr(pos+1);
-  if (ext == "csv") return false;
+  std::wstring ext=fn.substr(pos+1);
+  if (ext == L"csv") return false;
   return true;
 }
 
@@ -535,7 +529,7 @@ void mkListView(HWND hWnd) {
   if (hwndListView == NULL) hwndListView=CreateListView(g_hInst, hWnd);
   else ShowWindow(hwndListView, FALSE);
 
-  char sep=g_separator;
+  wchar_t sep=g_separator;
   if (is_not_csv(g_filename)) sep=0;
 
   readCsv(g_filename, hwndListView, sep);
@@ -582,9 +576,9 @@ void do_autoref(HWND hWnd, bool do_it) {
   if (do_it) {
     CheckMenuItem(GetMenu(hWnd), IDM_AREF, MF_BYCOMMAND | MF_CHECKED);
     EnableMenuItem(GetMenu(hWnd), IDM_REFR, MF_BYCOMMAND | MF_DISABLED);
-    char *sri=getenv("REFRESH_INTERVAL");
+    std::string sri=sgetenv("REFRESH_INTERVAL");
     UINT ri;
-    if (sri) ri=std::stoi(sri);
+    if (sri != "") ri=std::stoi(sri);
     else ri=g_refitv;
     
     SetTimer(hWnd, 1, ri, AutoRefresh);
@@ -622,12 +616,12 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
     switch (GET_WM_COMMAND_ID(wParam, lParam)) {
     case IDM_OPEN: {
       OPENFILENAME ofn;
-      char fn[MAX_PATH]="";
+      wchar_t fn[MAX_PATH]=L"";
 
       ZeroMemory(&ofn, sizeof(OPENFILENAME));
       ofn.lStructSize=sizeof(OPENFILENAME);
       ofn.hwndOwner=hWnd;
-      ofn.lpstrFilter="Fichier csv\0*.csv\0Tout fichier\0*.*\0\0";
+      ofn.lpstrFilter=L"Fichier csv\0*.csv\0Tout fichier\0*.*\0\0";
       ofn.nFilterIndex=0;
 
       //GetDlgItemText(hDlg, IDC_SUBFILE, fn, MAX_PATH);
@@ -636,7 +630,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
 
       ofn.lpstrFileTitle=NULL;
       ofn.lpstrInitialDir=NULL;
-      ofn.lpstrTitle="Fichier texte ou csv";
+      ofn.lpstrTitle=L"Fichier texte ou csv";
       ofn.Flags=OFN_FILEMUSTEXIST|OFN_SHOWHELP;
 
       if (GetOpenFileName(&ofn)) {
@@ -662,7 +656,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
       break;
 
     case IDM_HELP:
-      MessageBox(NULL, InfMsg.c_str(), "WinTail", MB_OK);
+      MessageBox(NULL, s2ws(InfMsg).c_str(), L"WinTail", MB_OK);
       break;
 
     case IDM_SEFI:
@@ -730,7 +724,12 @@ BOOL InitApplication(HINSTANCE hInstance) {
   return aReturn;
 }
 
-int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow) {
+#ifdef _MSC_VER
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
+#else
+int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow)
+#endif
+{
   g_hInst=hInstance;
   if (!hPrevInstance && !InitApplication(hInstance)) return FALSE;
 
@@ -741,7 +740,7 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
     std::cout << InfMsg << std::endl;
   }
 
-  if (args.size() > 1) g_filename=args[1];
+  if (args.size() > 1) g_filename=s2ws(args[1]);
   if (args.size() > 2) g_autoref=args[2] == "1" || args[2] == "on" || args[2] == "true"?true:false;
   if (args.size() > 3) g_refitv=std::stoi(args[3]);
   if (args.size() > 4) {
@@ -750,7 +749,6 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   }
 
   // Required to use the common controls (not so sure as of 2022)
-  InitCommonControls();
   if (!InitInstance(hInstance, nCmdShow)) return FALSE;
 
   // Acquire and dispatch messages

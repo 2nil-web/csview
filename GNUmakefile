@@ -14,14 +14,18 @@ LDFLAGS  += -g -Os
 
 PREFIX=wintail
 SRCS=${PREFIX}.cpp
+ifneq ($(MSBUILD),)
 OBJS=$(SRCS:.cpp=.o)
+endif
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
 #MSYSTEM=UCRT64
+#MSYSTEM=MINGW64
+
 #MSYSTEM=CLANG64
-MSYSTEM=MINGW64
-MAGICK=magick
+MSYSTEM=MSBUILD
+MAGICK=/mingw64/bin/magick
 RC=windres
 
 ifeq (${MSYSTEM},MINGW64)
@@ -34,16 +38,21 @@ PATH:=/ucrt64/bin:${PATH}
 #LDFLAGS += -static
 endif
 
+ifeq (${MSYSTEM},MSBUILD)
+MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+endif
+
 # CLANG n'accepte pas les fichiers en ISO-8859
 # Pour utiliser clang il faut passer par le shell clang64.exe de msys2
 ifeq (${MSYSTEM},CLANG64)
 PATH:=/clang64/bin:${PATH}
 CC=clang++
 CXX=clang++
+CPPFLAGS += -D_UNICODE -DUNICODE
 LDFLAGS += -pthread -static
-else
-CC=gcc
-CXX=g++
+#else
+#CC=gcc
+#CXX=g++
 #LDFLAGS += -L /usr/local/lib64
 endif
 
@@ -84,13 +93,22 @@ TARGETS +=  mywc${EXEXT} mytail${EXEXT}
 
 all : ${TARGETS}
 
+ifneq ($(MSBUILD),)
+${PREFIX}${EXEXT} : wintail.cpp
+	${MSBUILD} wintail.sln -p:Configuration=Release
+	cp x64/Release/${PREFIX}${EXEXT} .	
+endif
+
+
 mywc${EXEXT} : mywc.cpp
 	${CXX} ${CXXFLAGS} mywc.cpp  -o mywc
 
 mytail${EXEXT} : mytail.cpp
 	${CXX} ${CXXFLAGS} mytail.cpp  -o mytail
 
+ifneq ($(MSBUILD),)
 ${PREFIX}${EXEXT} : ${OBJS}
+endif
 
 ${PREFIX}_res.o : ${PREFIX}.ico
 
@@ -103,8 +121,11 @@ upx : $(TARGETS)
 
 cfg :
 	@echo "${PATH}"
-	@type cc c++ gcc g++ ld windres strip gdb upx convert inkscape iscc
+	@type strip upx convert inkscape iscc
+ifneq ($(MSYSTEM),MSBUILD)
+	@type cc c++ gcc g++ ld windres gdb convert inkscape iscc
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
+endif
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 
 clean :
@@ -116,6 +137,7 @@ rclean :
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
 ifneq ($(MAKECMDGOALS),rclean)
+ifneq ($(MSBUILD),)
 %.exe: %.o
 	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
@@ -147,6 +169,7 @@ ifneq ($(MAKECMDGOALS),rclean)
 # Inclusion des fichiers de dépendance .d
 ifdef OBJS
 -include $(OBJS:.o=.d)
+endif
 endif
 endif
 
