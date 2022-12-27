@@ -61,8 +61,13 @@ std::wstring ws(const std::string &s) {
     return res;
 }
 
-int main() {
-  std::wstring s=L" ";
+#ifdef _MSC_VER
+int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
+#else
+int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow)
+#endif
+{
+  std::wstring s=L"";
   int i=1; for (auto &es : ent_sym) {
     s+=std::to_wstring(i)+L'('+std::wstring(&es.first)+L','+ws(es.second)+L')';
     if (i%4) s+=L','; 

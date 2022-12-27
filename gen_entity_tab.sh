@@ -10,7 +10,7 @@ gen_entity () {
   # UTF-16 big-endian BOM
   #printf '\xFE\xFF'
 
-  # UTF-16 little-endian BOM, that's what Windows use for its values stored in memory
+  # UTF-16 little-endian BOM, that's what Windows use for its values stored in memory (mais ça marche pô ...)
   #printf '\xFF\xFE'
 
   echo -n "std::vector<std::pair<wchar_t, std::string>> ent_sym = {"
