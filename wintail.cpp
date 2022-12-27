@@ -407,9 +407,11 @@ BOOL InsertListViewItems(HWND hwndListView) {
 }
 
 BOOL InitListView(HWND hwndListView) {
-  size_t i;
-  // Empty the list
-  for (i=0; i < 100; i++) ListView_DeleteColumn(hwndListView, 0);
+  // "A priori" ListView_DeleteColumn is much more useful than ListView_DeleteAllItems
+  // The MS doc about that is very "blurry"
+  // Remove columns until there are not any more
+  while (ListView_DeleteColumn(hwndListView, 0));
+  // Empty the list, does not seem useful once there are no more columns
   ListView_DeleteAllItems(hwndListView);
 
   //initialize the columns
@@ -419,16 +421,16 @@ BOOL InitListView(HWND hwndListView) {
   lvColumn.cx=120;
 
   //std::cout << __LINE__ << std::endl;
-  lvColumn.pszText=(wchar_t * )"#";
+  lvColumn.pszText=(wchar_t * )L"#";
   ListView_InsertColumn(hwndListView, 0, &lvColumn);
   //std::cout << "g_maxCol " << g_maxCol << std::endl;
 
   if (g_maxCol == 1) {
-    lvColumn.pszText=(wchar_t * ) "Text";
-    ListView_InsertColumn(hwndListView, i+1, &lvColumn);
+    lvColumn.pszText=(wchar_t * )L"Text";
+    ListView_InsertColumn(hwndListView, 1, &lvColumn);
   } else {
   //std::cout << __LINE__ << std::endl;
-    for (i=0; i < g_maxCol; i++) {
+    for (size_t i=0; i < g_maxCol; i++) {
       //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
       lvColumn.pszText=(wchar_t * ) g_header[i].c_str();
       ListView_InsertColumn(hwndListView, i+1, &lvColumn);
