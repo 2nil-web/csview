@@ -25,6 +25,8 @@
 
 #include "resource.h"
 
+#include "ent_sym.h"
+
 #ifndef WIN32
 #define GET_WM_COMMAND_ID(wp, lp)   (wp)
 #define GET_WM_COMMAND_HWND(wp, lp) (HWND)(LOWORD(lp))
@@ -53,6 +55,7 @@ std::vector < std::vector < std::wstring >> g_sheet;
 // Pour calculer la plus large taille de chaque colonne : get<0>=row, get<1>=text.size, get<2>=pixel width
 std::vector <std::tuple < size_t, size_t, int >> g_widestCol;
 
+/*
 std::wstring s2ws(const std::string& str)
 {
     int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
@@ -60,6 +63,74 @@ std::wstring s2ws(const std::string& str)
     MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
     return wstrTo;
 }
+*/
+// string to wstring
+std::wstring s2ws(const std::string &s) {
+    std::wstring res(s.begin(), s.end());
+    return res;
+}
+
+// wstring to string
+std::string ws2s(const std::wstring &s) {
+    std::string res(s.begin(), s.end());
+    return res;
+}
+
+// Retourne la chaine passée en paramétre en remplaçant toute ses sous-chaines étant une entité html symbole ou nombre par son équivalent caractére
+// Exemple si il existe une ou plusieurs sous-chaine &#39; alors elle sera remplacé par ' (apostrophe)
+// Exemple si il existe une ou plusieurs sous-chaine &apos; alors elle sera remplacé par ' (apostrophe)
+size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
+  std::wstring sn;
+  size_t i, i2, found;
+  int n;
+  wchar_t ch;
+  int how_many=0;
+
+  // Remplace les entités symbole, s'il y en a ...
+  for (auto &es : ent_sym) {
+    do {
+      found=s.rfind(s2ws(es.second));
+      if (found != std::wstring::npos) {
+        if (remove) s.replace(found, es.second.length(), L"");
+        else s.replace(found, es.second.length(), std::wstring(&es.first));
+        how_many++;
+      }
+    } while (found != std::wstring::npos);
+  }
+
+  // Remplace les entités nombres, s'il y en a ...
+  for(i=0; i < s.size(); i++) {
+    // Quand on rencontre & (ampersand) alors ça peut-être une entité html nombre, donc on test
+    if (s[i] == '&' && s.size() > i+1 && s[i+1] == '#') {
+      sn=L"";
+
+      for (i2=i+2; i2 < s.size(); i2++) {
+        if (isdigit(s[i2])) sn+=s[i2];
+        else if (s[i2] == ';') break;
+        else {
+          sn=L"";
+          break;
+        }
+      }
+
+      // On a trouvé une entité nombre
+      if (sn != L"") {
+        if (!remove) {
+          n=std::stoi(sn);
+          ch=wchar_t(n);
+          s.replace(i, i2-i, std::wstring(&ch));
+        }
+
+        i=i2;
+        how_many++;
+      }
+    }
+  }
+
+  return how_many;
+}
+
+
 std::string InfMsg=R"(WinTail displays the content of a csv file.
 At least one argument to provide the name of file to view.
 A second argument (true, on, 1 or anything else for false) to indicate if constant file polling is required (this is the default).
@@ -366,6 +437,9 @@ unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
         } else {
           if (!std::getline(ss, cell, sep)) break;
         }
+
+        //replace_html_all_entities(cell);
+
         row.push_back(cell);
         //std::cout << "Count " << count << ", cell " << cell << std::endl;
 

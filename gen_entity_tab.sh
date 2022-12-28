@@ -5,7 +5,7 @@ gen_entity () {
   # BOM=Byte Order Mark
 
   # UTF-8 BOM
-  #printf '\xEF\xBB\xBF'
+  printf '\xEF\xBB\xBF'
 
   # UTF-16 big-endian BOM
   #printf '\xFE\xFF'

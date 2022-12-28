@@ -11,8 +11,14 @@
 #define trc 
 
 // string to wstring
-std::wstring ws(const std::string &s) {
+std::wstring s2ws(const std::string &s) {
     std::wstring res(s.begin(), s.end());
+    return res;
+}
+
+// wstring to string
+std::string ws2s(const std::wstring &s) {
+    std::string res(s.begin(), s.end());
     return res;
 }
 
@@ -29,7 +35,7 @@ size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
   // Remplace les entités symbole, s'il y en a ...
   for (auto &es : ent_sym) {
     do {
-      found=s.rfind(ws(es.second));
+      found=s.rfind(s2ws(es.second));
       if (found != std::wstring::npos) {
         if (remove) s.replace(found, es.second.length(), L"");
         else s.replace(found, es.second.length(), std::wstring(&es.first));
@@ -70,20 +76,36 @@ size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
   return how_many;
 }
 
-std::wstring GetUserDefaultLang(LANGID &langid) {
+LANGID GetUserDefaultLang(std::wstring &ws) {
   size_t l;
-  langid=GetUserDefaultLangID();
+  LANGID langid=GetUserDefaultLangID();
   
   l=GetLocaleInfo(langid, LOCALE_SLANGUAGE,	NULL, 0);
 
   if (l > 0) {
     wchar_t *s=new wchar_t[l+1];
     GetLocaleInfo(langid, LOCALE_SLANGUAGE,	s, l);
-    return std::wstring(s);
+    ws=s;
+    return langid;
   }
 
-  return L"";
+  return -1;
 }
+
+std::wstring GetUserDefaultLocaleName() {
+
+  wchar_t s[LOCALE_NAME_MAX_LENGTH];
+  GetUserDefaultLocaleName(s, LOCALE_NAME_MAX_LENGTH);
+  return s;
+}
+
+std::wstring GetSystemDefaultLocaleName() {
+
+  wchar_t s[LOCALE_NAME_MAX_LENGTH];
+  GetSystemDefaultLocaleName(s, LOCALE_NAME_MAX_LENGTH);
+  return s;
+}
+
 
 #ifdef _MSC_VER
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
@@ -93,17 +115,19 @@ int PASCAL WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
   std::wstring ln=L"", res=L"";
   size_t how_many=0;
+  setlocale(LC_ALL, ".utf8");
 
-  LANGID lid;
-  res+=L"UserDefaultLang "+GetUserDefaultLang(lid)+L", id "+std::to_wstring(lid)+L"\n";
+  std::wstring slang;
+  res+=L"User default Lang id "+std::to_wstring(GetUserDefaultLang(slang))+L" and lang name "+slang+L"\n";
+  res+=L"User default locale "+GetUserDefaultLocaleName()+L"\n";
+  res+=L"System default locale "+GetSystemDefaultLocaleName()+L"\n";
 
   while (std::getline(std::wcin, ln)) {
     how_many += replace_html_all_entities(ln, false);
     res+=L'['+ln+L"]\n";
   }
 
-  std::wstring title=ws("Found "+std::to_string(how_many)+" entities");
-  MessageBox(NULL, res.c_str(), title.c_str(), MB_OK);
+  MessageBox(NULL, res.c_str(), ("Found "+std::to_string(how_many)+" entities").c_str(), MB_OK);
   return 0;
 }
 

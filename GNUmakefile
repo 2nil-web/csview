@@ -97,6 +97,8 @@ ifneq ($(MSBUILD),)
 ${PREFIX}${EXEXT} : wintail.cpp
 	${MSBUILD} wintail.sln -p:Configuration=Release
 	cp x64/Release/${PREFIX}${EXEXT} .	
+else
+${PREFIX}${EXEXT} : ${OBJS}
 endif
 
 
@@ -120,6 +122,7 @@ upx : $(TARGETS)
 	$(UPX) -q $(TARGETS) 2>/dev/null || true
 
 cfg :
+	@echo "MSYSTEM ${MSYSTEM}"
 	@echo "${PATH}"
 	@type strip upx convert inkscape iscc
 ifneq ($(MSYSTEM),MSBUILD)
@@ -137,7 +140,7 @@ rclean :
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
 ifneq ($(MAKECMDGOALS),rclean)
-ifneq ($(MSBUILD),)
+ifeq ($(MSBUILD),)
 %.exe: %.o
 	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
