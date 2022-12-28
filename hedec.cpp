@@ -35,8 +35,9 @@ size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
   // Remplace les entités symbole, s'il y en a ...
   for (auto &es : ent_sym) {
     do {
-      found=s.rfind(s2ws(es.second));
+      found=s.rfind(es.second);
       if (found != std::wstring::npos) {
+        std::cout << "Found entity symbol " << es.second << std::endl;
         if (remove) s.replace(found, es.second.length(), L"");
         else s.replace(found, es.second.length(), std::wstring(&es.first));
         how_many++;
@@ -63,6 +64,7 @@ size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
       if (sn != L"") {
         if (!remove) {
           n=std::stoi(sn);
+          std::cout << "Found entity number " << n << std::endl;
           ch=wchar_t(n);
           s.replace(i, i2-i, std::wstring(&ch));
         }
@@ -127,7 +129,8 @@ int PASCAL WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     res+=L'['+ln+L"]\n";
   }
 
-  MessageBox(NULL, res.c_str(), ("Found "+std::to_string(how_many)+" entities").c_str(), MB_OK);
+  std::cout << ws2s(res) << std::endl;
+//  MessageBox(NULL, res.c_str(), (wchar_t *)("Found "+std::to_string(how_many)+" entities").c_str(), MB_OK);
   return 0;
 }
 

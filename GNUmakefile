@@ -94,7 +94,7 @@ TARGETS +=  mywc${EXEXT} mytail${EXEXT}
 all : ${TARGETS}
 
 ifneq ($(MSBUILD),)
-${PREFIX}${EXEXT} : wintail.cpp
+${PREFIX}${EXEXT} : ${SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
 	cp x64/Release/${PREFIX}${EXEXT} .	
 else

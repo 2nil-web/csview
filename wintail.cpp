@@ -25,8 +25,6 @@
 
 #include "resource.h"
 
-#include "ent_sym.h"
-
 #ifndef WIN32
 #define GET_WM_COMMAND_ID(wp, lp)   (wp)
 #define GET_WM_COMMAND_HWND(wp, lp) (HWND)(LOWORD(lp))
@@ -75,61 +73,6 @@ std::string ws2s(const std::wstring &s) {
     std::string res(s.begin(), s.end());
     return res;
 }
-
-// Retourne la chaine passée en paramétre en remplaçant toute ses sous-chaines étant une entité html symbole ou nombre par son équivalent caractére
-// Exemple si il existe une ou plusieurs sous-chaine &#39; alors elle sera remplacé par ' (apostrophe)
-// Exemple si il existe une ou plusieurs sous-chaine &apos; alors elle sera remplacé par ' (apostrophe)
-size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
-  std::wstring sn;
-  size_t i, i2, found;
-  int n;
-  wchar_t ch;
-  int how_many=0;
-
-  // Remplace les entités symbole, s'il y en a ...
-  for (auto &es : ent_sym) {
-    do {
-      found=s.rfind(s2ws(es.second));
-      if (found != std::wstring::npos) {
-        if (remove) s.replace(found, es.second.length(), L"");
-        else s.replace(found, es.second.length(), std::wstring(&es.first));
-        how_many++;
-      }
-    } while (found != std::wstring::npos);
-  }
-
-  // Remplace les entités nombres, s'il y en a ...
-  for(i=0; i < s.size(); i++) {
-    // Quand on rencontre & (ampersand) alors ça peut-être une entité html nombre, donc on test
-    if (s[i] == '&' && s.size() > i+1 && s[i+1] == '#') {
-      sn=L"";
-
-      for (i2=i+2; i2 < s.size(); i2++) {
-        if (isdigit(s[i2])) sn+=s[i2];
-        else if (s[i2] == ';') break;
-        else {
-          sn=L"";
-          break;
-        }
-      }
-
-      // On a trouvé une entité nombre
-      if (sn != L"") {
-        if (!remove) {
-          n=std::stoi(sn);
-          ch=wchar_t(n);
-          s.replace(i, i2-i, std::wstring(&ch));
-        }
-
-        i=i2;
-        how_many++;
-      }
-    }
-  }
-
-  return how_many;
-}
-
 
 std::string InfMsg=R"(WinTail displays the content of a csv file.
 At least one argument to provide the name of file to view.
@@ -289,6 +232,7 @@ INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*
     return FALSE;
 }
 
+
 HWND hwndListView = NULL;
 LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
     LPNMHDR lpnmh = (LPNMHDR)lParam;
@@ -313,9 +257,8 @@ LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
         else { // Colonnes suivantes
             if (lpdi->item.mask & LVIF_TEXT) {
                 if ((int)g_sheet.size() > lpdi->item.iItem && (int)g_sheet[lpdi->item.iItem].size() >= lpdi->item.iSubItem) {
-                    _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, g_sheet[lpdi->item.iItem][lpdi->item.iSubItem - 1].c_str(), _TRUNCATE);
-                }
-                else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
+                  _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, g_sheet[lpdi->item.iItem][lpdi->item.iSubItem - 1].c_str(), _TRUNCATE);
+                } else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
             }
         }
     }
@@ -410,6 +353,7 @@ unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
   curr_mtime=get_mtime(fname);
 
   unsigned int count=0;
+  bool first_row=true;
   std::wifstream fp(fname);
 
   if (fp.is_open()) {
@@ -438,8 +382,6 @@ unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
           if (!std::getline(ss, cell, sep)) break;
         }
 
-        //replace_html_all_entities(cell);
-
         row.push_back(cell);
         //std::cout << "Count " << count << ", cell " << cell << std::endl;
 
@@ -459,10 +401,17 @@ unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
 //        if (row.size() > maxcell) break;
       }
 
-      if (row.size() > g_maxCol) g_maxCol=row.size();
+      if (first_row) {
+        //std::cout << "cell.size() " << cell.size() << std::endl;
+        //std::cout << "row.size() " << row.size() << std::endl;
+        if (row.size() > g_maxCol) g_maxCol=row.size();
+        first_row=false;
+      }
+
       if (count == 0) g_header=row;
       else g_sheet.push_back(row);
       count++;
+      //std::cout << "row count " << count << ", cell count " << row.size() << std::endl;
     }
 
     fp.close();
@@ -479,6 +428,7 @@ BOOL InsertListViewItems(HWND hwndListView) {
   ListView_SetItemCount(hwndListView, g_sheet.size());
   return TRUE;
 }
+
 
 BOOL InitListView(HWND hwndListView) {
   // "A priori" ListView_DeleteColumn is much more useful than ListView_DeleteAllItems
@@ -503,10 +453,11 @@ BOOL InitListView(HWND hwndListView) {
     lvColumn.pszText=(wchar_t * )L"Text";
     ListView_InsertColumn(hwndListView, 1, &lvColumn);
   } else {
-  //std::cout << __LINE__ << std::endl;
+    //std::cout << "g_maxCol " << g_maxCol << std::endl;
     for (size_t i=0; i < g_maxCol; i++) {
-      //std::cout << "Adding header " << i+1 << ", value " << g_header[i] << ", size " << g_header[i].size() << std::endl;
-      lvColumn.pszText=(wchar_t * ) g_header[i].c_str();
+      //std::wcout << L"Adding header " << i+1 << L", value " << g_header[i] << L", size " << g_header[i].size() << std::endl;
+      if (g_header[i].size() == 0) lvColumn.pszText=(wchar_t *)" ";
+      else lvColumn.pszText=(wchar_t * )g_header[i].c_str();
       ListView_InsertColumn(hwndListView, i+1, &lvColumn);
     }
   }
