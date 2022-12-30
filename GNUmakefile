@@ -88,7 +88,9 @@ endif
 STRIP=strip
 GDB=gdb
 LD=g++
-TARGETS +=  mywc${EXEXT} mytail${EXEXT}
+PFX1=line_count
+PFX2=tailf
+TARGETS +=  ${PFX1}${EXEXT} ${PFX2}${EXEXT}
 
 
 all : ${TARGETS}
@@ -102,11 +104,11 @@ ${PREFIX}${EXEXT} : ${OBJS}
 endif
 
 
-mywc${EXEXT} : mywc.cpp
-	${CXX} ${CXXFLAGS} mywc.cpp  -o mywc
+${PFX1}${EXEXT} : ${PFX1}.cpp
+	${CXX} ${CXXFLAGS} ${PFX1}.cpp  -o ${PFX1}
 
-mytail${EXEXT} : mytail.cpp
-	${CXX} ${CXXFLAGS} mytail.cpp  -o mytail
+${PFX2}${EXEXT} : ${PFX2}.cpp
+	${CXX} ${CXXFLAGS} ${PFX2}.cpp  -o ${PFX2}
 
 ifneq ($(MSBUILD),)
 ${PREFIX}${EXEXT} : ${OBJS}
@@ -135,11 +137,17 @@ clean :
 	rm -f *~ *.o $(OBJS) ${PREFIX}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe
+	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe 
 
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
 ifneq ($(MAKECMDGOALS),rclean)
+%.ico : %.png
+	${MAGICK} convert -background none $< $@
+
+%.ico : %.svg
+	${MAGICK} convert -background none $< $@
+
 ifeq ($(MSBUILD),)
 %.exe: %.o
 	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
@@ -149,12 +157,6 @@ ifeq ($(MSBUILD),)
 
 %.exe: %.cpp
 	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
-
-%.ico : %.png
-	${MAGICK} convert -background none $< $@
-
-%.ico : %.svg
-	${MAGICK} convert -background none $< $@
 
 # Régles pour construire les fichier objet d'après les .rc
 %.o : %.rc
