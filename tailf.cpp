@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <thread>
 
+#include <windows.h>
+
 std::vector<std::string> args, envs;
 std::string prog_basename;
 
@@ -53,6 +55,19 @@ bool is_positive_integer(const std::string &s) {
   return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
 }
 
+bool flush_cache_for_file(std::string s) {
+  bool ret=false;
+
+  HANDLE hFile=CreateFile(s.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (hFile != INVALID_HANDLE_VALUE) {
+    ret=FlushFileBuffers(hFile);
+    CloseHandle(hFile);
+  }
+
+  return ret;
+}
+
+
 #define trc std::cout << __LINE__ << std::endl;
 
 int main(int argc, char *argv[]) {
@@ -85,6 +100,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    flush_cache_for_file(args[0]);
   }
   return 0;
 }

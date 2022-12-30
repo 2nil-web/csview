@@ -303,7 +303,7 @@ std::string ws(std::wstring w) {
 // Get last mtime of a file using stat and GetFileTime, return the highest value (i.e. the most recent time)
 time_t get_mtime(std::wstring fname) {
   struct stat st;
-  time_t last_mtime=0;
+  time_t last_atime=0, last_mtime=0;
   
   stat(ws(fname).c_str(), &st);
 
@@ -311,10 +311,15 @@ time_t get_mtime(std::wstring fname) {
 
   if (hFile != INVALID_HANDLE_VALUE) {
     FILETIME LastWriteTime = { 0, 0 };
-    GetFileTime(hFile, NULL, NULL, &LastWriteTime);
+    FILETIME LastAccessTime = { 0, 0 };
+    GetFileTime(hFile, NULL, &LastAccessTime, &LastWriteTime);
     CloseHandle(hFile);
     last_mtime=FT2t(LastWriteTime);
+    last_atime=FT2t(LastAccessTime);
   }
+
+  std::cout << "st_mtime " << st.st_mtime << ", last_mtime " << last_mtime << std::endl;
+  std::cout << "st_atime " << st.st_atime << ", last_atime " << last_mtime << std::endl;
 
   if (st.st_mtime > last_mtime) return st.st_mtime;
 
