@@ -15,8 +15,8 @@ ifneq (${OS},Linux)
 #MSYSTEM=UCRT64
 #MSYSTEM=MINGW64
 
-MSYSTEM=CLANG64
-#MSYSTEM=MSBUILD
+#MSYSTEM=CLANG64
+MSYSTEM=MSBUILD
 MAGICK=/mingw64/bin/magick
 RC=windres
 
@@ -134,7 +134,8 @@ clean :
 	rm -f *~ *.o $(OBJS) ${PREFIX}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe 
+	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe
+	rm -rf x64
 
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
