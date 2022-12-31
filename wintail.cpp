@@ -23,6 +23,8 @@
 #include <sys/stat.h>
 //#include <unistd.h>
 
+#include "util.h"
+#include "reghandle.h"
 #include "resource.h"
 
 #ifndef WIN32
@@ -39,11 +41,17 @@
 // Global Variables
 HINSTANCE g_hInst;
 TCHAR g_szClassName[]=TEXT("wintailClass");
+
 // Nom du fichier csv à visualiser
 std::wstring g_filename;
-bool g_autoref=true;
+
+////// Valeurs de conf à sauvegarder
+bool g_autoref=false;
 // Séparateur du fichier csv (par défaut ;)
-wchar_t g_separator=';';
+wchar_t g_separator=';', g_delimiter='"';
+UINT g_refitv=2000;
+//////
+
 // Nombre maximum de colonne dans le csv
 size_t g_maxCol=0;
 // Entête du csv
@@ -53,32 +61,15 @@ std::vector < std::vector < std::wstring >> g_sheet;
 // Pour calculer la plus large taille de chaque colonne : get<0>=row, get<1>=text.size, get<2>=pixel width
 std::vector <std::tuple < size_t, size_t, int >> g_widestCol;
 
-/*
-std::wstring s2ws(const std::string& str)
-{
-    int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
-    std::wstring wstrTo(size_needed, 0);
-    MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
-    return wstrTo;
-}
-*/
-// string to wstring
-std::wstring s2ws(const std::string &s) {
-    std::wstring res(s.begin(), s.end());
-    return res;
-}
 
-// wstring to string
-std::string ws2s(const std::wstring &s) {
-    std::string res(s.begin(), s.end());
-    return res;
-}
-
-std::string InfMsg=R"(WinTail displays the content of a csv file.
-At least one argument to provide the name of file to view.
+std::string InfMsg=R"(WinTail displays the content of a txt or csv file.
+You can provide arguments when calling the program, 
+A first one to provide the name of file to view.
 A second argument (true, on, 1 or anything else for false) to indicate if constant file polling is required (this is the default).
 A third argument to modify the polling interval in millisecond (default is 2000 ms). Value is overwritten by environment variable 'REFRESH_INTERVAL'.
-A fourth argument to define the csv separator (default is ';').)";
+A fourth argument to define the csv separator (default is ';').
+All those parameters can be changed with the various menus of the application.
+)";
 
 std::vector<std::wstring> cmdLineToWsVec() {
   LPWSTR *wav;
@@ -89,15 +80,14 @@ std::vector<std::wstring> cmdLineToWsVec() {
 }
 
 std::vector<std::string> cmdLineToSVec() {
-    std::vector<std::wstring> wsv = cmdLineToWsVec();
+    std::vector<std::wstring> wsv=cmdLineToWsVec();
     std::vector<std::string> sv;
     for (auto ws : wsv) sv.push_back(std::string(ws.begin(), ws.end()));
 
     return sv;
 }
 
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
-  HWND hWnd;
+BOOL InitInstance(HWND &hWnd, HINSTANCE hInstance, int nCmdShow) {
   TCHAR szTitle[MAX_PATH]=TEXT("");
 
   g_hInst=hInstance;
@@ -184,20 +174,47 @@ INT_PTR CALLBACK SearchDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /
   return FALSE;
 }
 
-UINT g_refitv=2000;
+const std::string REGKEY="Software\\wintail";
+
+wchar_t GetRegChar(std::string var, std::string defval) {
+  return s2ws(GetRegString(REGKEY, var, defval)).c_str()[0];
+}
+
+void getconfig () {
+  g_autoref=GetRegInt(REGKEY, "AutoRefresh", 0) == 1?true:false;
+  g_refitv=GetRegInt(REGKEY, "RefreshInterval", 2000);
+  g_separator=GetRegChar("Separator", ";");
+  g_delimiter=GetRegChar("Delimiter", "\"");
+}
+
+void PutRegChar(std::string var, wchar_t c) {
+  PutRegString(REGKEY, var, std::string(1, (char )c));
+}
+
+void setconfig () {
+  PutRegInt(REGKEY, "AutoRefresh", g_autoref?1:0);
+  PutRegInt(REGKEY, "RefreshInterval", g_refitv);
+  PutRegChar("Separator", g_separator);
+  PutRegChar("Delimiter", g_delimiter);
+}
+
+
 INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*lParam*/ ) {
   switch (uMessage) {
   case WM_INITDIALOG:
     SendDlgItemMessage(hDlg, IDC_CSVSEP, EM_SETLIMITTEXT, 1, 0);
+    SendDlgItemMessage(hDlg, IDC_SDELIM, EM_SETLIMITTEXT, 1, 0);
     SetWinText(hDlg, IDC_AUTOREF, std::to_wstring(g_refitv));
     SetWinText(hDlg, IDC_CSVSEP, std::wstring(1, g_separator));
+    SetWinText(hDlg, IDC_SDELIM, std::wstring(1, g_delimiter));
     return TRUE;
 
   case WM_COMMAND:
       switch (wParam) {
       case IDOK:
-          g_refitv = std::stoi(GetWinText(hDlg, IDC_AUTOREF));
-          g_separator = GetWinText(hDlg, IDC_CSVSEP)[0];
+          g_refitv=std::stoi(GetWinText(hDlg, IDC_AUTOREF));
+          g_separator=GetWinText(hDlg, IDC_CSVSEP)[0];
+          g_delimiter=GetWinText(hDlg, IDC_SDELIM)[0];
           EndDialog(hDlg, IDOK);
           break;
 
@@ -233,64 +250,64 @@ INT_PTR CALLBACK AboutDlgProc(HWND hDlg, UINT uMessage, WPARAM wParam, LPARAM /*
 }
 
 
-HWND hwndListView = NULL;
+HWND hwndListView=NULL;
 LRESULT ListViewNotify(HWND, WPARAM, LPARAM lParam) {
-    LPNMHDR lpnmh = (LPNMHDR)lParam;
+  LPNMHDR lpnmh=(LPNMHDR)lParam;
 
-    if (lpnmh->hwndFrom != hwndListView) return 0;
+  if (lpnmh->hwndFrom != hwndListView) return 0;
 
-    switch (lpnmh->code) {
+  switch (lpnmh->code) {
     case LVN_GETDISPINFO: {
-        //std::cout << "VK_ESCAPE " << VK_ESCAPE << ", wParam " << wParam << ", lParam " << lParam << ", Notif code " << lpnmh->code << std::endl;
-        LV_DISPINFO* lpdi = (LV_DISPINFO*)lParam;
+      //std::cout << "VK_ESCAPE " << VK_ESCAPE << ", wParam " << wParam << ", lParam " << lParam << ", Notif code " << lpnmh->code << std::endl;
+      LV_DISPINFO* lpdi=(LV_DISPINFO*)lParam;
 
-        if (lpdi->item.iSubItem == 0) { // 1ére colonne
-            if (lpdi->item.mask & LVIF_TEXT) {
-                if ((int)g_sheet.size() > lpdi->item.iItem && g_sheet[lpdi->item.iItem].size() > 0) {
-                    _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, std::to_wstring(lpdi->item.iItem + 1).c_str(), _TRUNCATE);
-                }
-                else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
-            }
+      if (lpdi->item.iSubItem == 0) { // 1ére colonne
+        if (lpdi->item.mask & LVIF_TEXT) {
+          if ((int)g_sheet.size() > lpdi->item.iItem && g_sheet[lpdi->item.iItem].size() > 0) {
+              _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, std::to_wstring(lpdi->item.iItem + 1).c_str(), _TRUNCATE);
+          }
+          else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
+        }
 
-            //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
+        //if(lpdi->item.mask & LVIF_IMAGE) { lpdi->item.iImage=0; }
+      }
+      else { // Colonnes suivantes
+        if (lpdi->item.mask & LVIF_TEXT) {
+          if ((int)g_sheet.size() > lpdi->item.iItem && (int)g_sheet[lpdi->item.iItem].size() >= lpdi->item.iSubItem) {
+            _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, g_sheet[lpdi->item.iItem][lpdi->item.iSubItem - 1].c_str(), _TRUNCATE);
+          } else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
         }
-        else { // Colonnes suivantes
-            if (lpdi->item.mask & LVIF_TEXT) {
-                if ((int)g_sheet.size() > lpdi->item.iItem && (int)g_sheet[lpdi->item.iItem].size() >= lpdi->item.iSubItem) {
-                  _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, g_sheet[lpdi->item.iItem][lpdi->item.iSubItem - 1].c_str(), _TRUNCATE);
-                } else _tcsncpy_s(lpdi->item.pszText, lpdi->item.cchTextMax, L"", _TRUNCATE);
-            }
-        }
+      }
     }
-                        return 1;
+    return 1;
 
     case LVN_ODCACHEHINT: {
-        /*
-        LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
-        This sample doesn't use this notification, but this is sent when the
-        ListView is about to ask for a range of items. On this notification,
-        you should load the specified items into your local cache. It is still
-        possible to get an LVN_GETDISPINFO for an item that has not been cached,
-        therefore, your application must take into account the chance of this
-        occurring.
-        */
+      /*
+      LPNMLVCACHEHINT   lpCacheHint=(LPNMLVCACHEHINT)lParam;
+      This sample doesn't use this notification, but this is sent when the
+      ListView is about to ask for a range of items. On this notification,
+      you should load the specified items into your local cache. It is still
+      possible to get an LVN_GETDISPINFO for an item that has not been cached,
+      therefore, your application must take into account the chance of this
+      occurring.
+      */
     }
-                        return 1;
+    return 1;
 
     case LVN_ODFINDITEM: {
-        /*
-        LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
-        This sample doesn't use this notification, but this is sent when the
-        ListView needs a particular item. Return -1 if the item is not found.
-        */
+      /*
+      LPNMLVFINDITEM lpFindItem=(LPNMLVFINDITEM)lParam;
+      This sample doesn't use this notification, but this is sent when the
+      ListView needs a particular item. Return -1 if the item is not found.
+      */
     }
-                       return 1;
-    }
+    return 1;
+  }
 
-    return 0;
+  return 0;
 }
 
-time_t curr_mtime = 0;
+time_t curr_mtime=0;
 // Convert win32api FILETIME to unix time_t
 time_t FT2t(FILETIME ft) {
     return ((LONGLONG)ft.dwLowDateTime + ((LONGLONG)(ft.dwHighDateTime) << 32LL) - 116444736000000000LL) / 10000000;
@@ -310,16 +327,16 @@ time_t get_mtime(std::wstring fname) {
   HANDLE hFile=CreateFile(g_filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
   if (hFile != INVALID_HANDLE_VALUE) {
-    FILETIME LastWriteTime = { 0, 0 };
-    FILETIME LastAccessTime = { 0, 0 };
+    FILETIME LastWriteTime={ 0, 0 };
+    FILETIME LastAccessTime={ 0, 0 };
     GetFileTime(hFile, NULL, &LastAccessTime, &LastWriteTime);
     CloseHandle(hFile);
     last_mtime=FT2t(LastWriteTime);
     last_atime=FT2t(LastAccessTime);
   }
 
-  std::cout << "st_mtime " << st.st_mtime << ", last_mtime " << last_mtime << std::endl;
-  std::cout << "st_atime " << st.st_atime << ", last_atime " << last_mtime << std::endl;
+//  std::cout << "st_mtime " << st.st_mtime << ", last_mtime " << last_mtime << std::endl;
+//  std::cout << "st_atime " << st.st_atime << ", last_atime " << last_atime << std::endl;
 
   if (st.st_mtime > last_mtime) return st.st_mtime;
 
@@ -341,14 +358,14 @@ std::string sgetenv(const std::string ev) {
 
 // Pas plus de 30 colonnes ... Je sais pas pourquoi ...
 size_t maxcell=29;
-unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0) {
+unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0, wchar_t delim=0) {
   g_sheet.clear();
   g_header.clear();
   g_widestCol.clear();
   //std::cout << "Starting to load in memory of the file " << fname << std::endl;
   std::string smr=sgetenv("MAXCOL");
 
-  if (smr != "") maxcell = std::stoi(smr);
+  if (smr != "") maxcell=std::stoi(smr);
   // nuplet pour évaluer la largeur de chaque colonne
   // Le 1er nuplet (tuple) c'est pour la largeur de la 1ére colonne qui indique le numéro de ligne ...
   g_widestCol.push_back(std::make_tuple(0, 0, 0));
@@ -564,7 +581,7 @@ void mkListView(HWND hWnd) {
   wchar_t sep=g_separator;
   if (is_not_csv(g_filename)) sep=0;
 
-  readCsv(g_filename, hwndListView, sep);
+  readCsv(g_filename, hwndListView, sep, g_delimiter);
   InitListView(hwndListView);
   // https://stackoverflow.com/questions/9255540/how-auto-size-the-columns-width-of-a-list-view-in-virtual-mode
   // get<0>=row, get<1>=text.size, get<2>=pixel width
@@ -585,7 +602,7 @@ void mkListView(HWND hWnd) {
       sumpx += px;
       ListView_SetColumnWidth(hwndListView, i, 20+px);
     }
-    //std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
+    if (false) std::cout << ", SUMCH " << sumch << ", SUMPX " << sumpx << std::endl;
   }
 
 
@@ -617,9 +634,11 @@ void do_autoref(HWND hWnd, bool do_it) {
   }
 }
 
+
 LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam) {
   switch (uMessage) {
   case WM_CREATE:
+    getconfig();
     mkListView(hWnd);
     do_autoref(hWnd, g_autoref);
     break;
@@ -707,6 +726,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lPa
     break;
 
   case WM_DESTROY:
+    setconfig();
     PostQuitMessage(0);
     break;
 
@@ -736,7 +756,7 @@ BOOL InitApplication(HINSTANCE hInstance) {
   aReturn=RegisterClassEx( & wcex);
 
   if (aReturn == 0) {
-    //std::cout << "aRet = 0 !!" << std::endl;
+    //std::cout << "aRet=0 !!" << std::endl;
     WNDCLASS wc;
 
     wc.style=0;
@@ -781,12 +801,16 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   }
 
   // Required to use the common controls (not so sure as of 2022)
-  if (!InitInstance(hInstance, nCmdShow)) return FALSE;
+  HWND hwnd;
+  if (!InitInstance(hwnd, hInstance, nCmdShow)) return FALSE;
 
+  HACCEL haccel=LoadAccelerators(g_hInst, MAKEINTRESOURCE(IDI_MAINICON));
   // Acquire and dispatch messages
   while (GetMessage(&msg, NULL, 0, 0)) {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
+    if (!TranslateAccelerator(hwnd, haccel, &msg)) {
+      TranslateMessage(&msg);
+      DispatchMessage(&msg);
+    }
   }
 
   return (int) msg.wParam;

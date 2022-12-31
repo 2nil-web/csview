@@ -9,25 +9,36 @@ CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST    "wintail.manifest"
 
 IDI_MAINICON            ICON    DISCARDABLE     "wintail.ico"
 
+IDI_MAINICON ACCELERATORS
+BEGIN 
+ VK_F1, IDM_HELP, VIRTKEY
+ VK_F2, IDM_OPEN, VIRTKEY
+ VK_F3, IDM_SEFI, VIRTKEY
+ VK_F4, IDM_AREF, VIRTKEY
+ VK_F5, IDM_REFR, VIRTKEY
+ VK_F6, IDM_CONFIG, VIRTKEY
+ VK_F12, IDM_ABOUT, VIRTKEY
+END
+
 IDM_MAIN_MENU MENU DISCARDABLE 
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Open",          IDM_OPEN
+        MENUITEM "&Open\tF2",           IDM_OPEN
         MENUITEM SEPARATOR
-        MENUITEM "&Refresh now",         IDM_REFR
-        MENUITEM "&Auto-refresh",        IDM_AREF
+        MENUITEM "&Search/Filter)\tF3", IDM_SEFI
         MENUITEM SEPARATOR
-        MENUITEM "&Search/Filter)", IDM_SEFI
+        MENUITEM "&Auto-refresh\tF4",   IDM_AREF
+        MENUITEM "&Refresh now\tF5",    IDM_REFR
         MENUITEM SEPARATOR
-        MENUITEM "S&etting",             IDM_CONFIG
+        MENUITEM "S&etting\tF6",        IDM_CONFIG
         MENUITEM SEPARATOR
-        MENUITEM "E&xit",                IDM_EXIT
+        MENUITEM "E&xit\tESC",          IDM_EXIT
     END
     POPUP "&Help"
     BEGIN
-        MENUITEM "&Help",                IDM_HELP
-        MENUITEM "&About",               IDM_ABOUT
+        MENUITEM "&Help\tF1",           IDM_HELP
+        MENUITEM "&About\tF12",         IDM_ABOUT
     END
 END
 
@@ -35,16 +46,16 @@ IDM_CONTEXT_MENU MENU DISCARDABLE
 BEGIN
     POPUP "Context Menu"
     BEGIN
-        MENUITEM "&Open",    IDM_OPEN
+        MENUITEM "&Open\tF2",           IDM_OPEN
         MENUITEM SEPARATOR
-        MENUITEM "&Refresh",       IDM_REFR
-        MENUITEM "&Auto-refresh",  IDM_AREF
+        MENUITEM "&Search/Filter)\tF3", IDM_SEFI
         MENUITEM SEPARATOR
-        MENUITEM "&Search/Filter", IDM_SEFI
+        MENUITEM "&Auto-refresh\tF4",   IDM_AREF
+        MENUITEM "&Refresh now\tF5",    IDM_REFR
         MENUITEM SEPARATOR
-        MENUITEM "S&etting",             IDM_CONFIG
+        MENUITEM "S&etting\tF6",        IDM_CONFIG
         MENUITEM SEPARATOR
-        MENUITEM "E&xit",          IDM_EXIT
+        MENUITEM "E&xit\tESC",          IDM_EXIT
     END
 END
 
@@ -57,8 +68,11 @@ BEGIN
     LTEXT          "Auto refresh period in milliseconds",-1,8,8,110,8
     EDITTEXT        IDC_AUTOREF, 124, 4, 30, 12, ES_AUTOHSCROLL | ES_NUMBER, WS_EX_RIGHT
     
-    LTEXT          "CSV separator",-1,8,28,80,8
-    EDITTEXT        IDC_CSVSEP, 124, 24, 10, 12, ES_AUTOHSCROLL | EM_SETLIMITTEXT
+    LTEXT          "CSV separator",-1,8,28,50,8
+    EDITTEXT        IDC_CSVSEP, 60, 24, 10, 12, ES_AUTOHSCROLL | EM_SETLIMITTEXT
+    
+    LTEXT          "String delimiter",-1,80,28,50,8
+    EDITTEXT        IDC_SDELIM, 130, 24, 10, 12, ES_AUTOHSCROLL | EM_SETLIMITTEXT
 
     DEFPUSHBUTTON  "OK",IDOK,20,50,50,14
     PUSHBUTTON     "Cancel", IDCANCEL, 100, 50, 50, 14, 0

@@ -1,11 +1,6 @@
 
 OS=$(shell uname -s)
 
-# Si le paramètre est un répertoire existant alors on l'ajoute au PATH
-define a2p
-  $(eval PATH=$(shell [ -d "${1}" ] && echo ${1}:)${PATH})
-endef
-
 CFLAGS += -Wall -Wextra -std=c18 -pedantic
 CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 #LDFLAGS += -static-libgcc -static-libstdc++
@@ -13,18 +8,15 @@ CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 LDFLAGS  += -g -Os
 
 PREFIX=wintail
-SRCS=${PREFIX}.cpp
-ifneq ($(MSBUILD),)
-OBJS=$(SRCS:.cpp=.o)
-endif
+SRCS=${PREFIX}.cpp reghandle.cpp util.cpp
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
 #MSYSTEM=UCRT64
 #MSYSTEM=MINGW64
 
-#MSYSTEM=CLANG64
-MSYSTEM=MSBUILD
+MSYSTEM=CLANG64
+#MSYSTEM=MSBUILD
 MAGICK=/mingw64/bin/magick
 RC=windres
 
@@ -41,6 +33,11 @@ endif
 ifeq (${MSYSTEM},MSBUILD)
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 endif
+
+ifeq ($(MSBUILD),)
+OBJS=$(SRCS:.cpp=.o)
+endif
+
 
 # CLANG n'accepte pas les fichiers en ISO-8859
 # Pour utiliser clang il faut passer par le shell clang64.exe de msys2
@@ -95,12 +92,12 @@ TARGETS +=  ${PFX1}${EXEXT} ${PFX2}${EXEXT}
 
 all : ${TARGETS}
 
-ifneq ($(MSBUILD),)
+ifeq ($(MSBUILD),)
+${PREFIX}${EXEXT} : ${OBJS}
+else
 ${PREFIX}${EXEXT} : ${SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
 	cp x64/Release/${PREFIX}${EXEXT} .	
-else
-${PREFIX}${EXEXT} : ${OBJS}
 endif
 
 

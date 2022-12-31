@@ -21,6 +21,7 @@
 
 #define IDC_AUTOREF                     160
 #define IDC_CSVSEP                      162
+#define IDC_SDELIM                      163
 
 #define IDC_REGEX                       164
 #define IDC_STRING                      166
