@@ -4,11 +4,9 @@
 #include <map>
 #include <string>
 
-#define U8
-
 namespace emojicpp {
-  static std::map<std::string, std::string> EMOJIS = {
-#include "emoji_map.h"
+  static std::map<std::string, std::string> emojis = {
+     #include "emoji_map.h"
   }; 
 
   std::string emojize(std::string s, bool escape=true) {
@@ -28,8 +26,8 @@ namespace emojicpp {
             continue;
           }
           std::map<std::string, std::string>::iterator it;
-          it = EMOJIS.find(s.substr(index, i - index + 1));
-          if (it == EMOJIS.end()) {
+          it = emojis.find(s.substr(index, i - index + 1));
+          if (it == emojis.end()) {
             index = i;
             continue;
           }
@@ -49,10 +47,7 @@ namespace emojicpp {
 }
 
 int main() {
-    //std::cout << emojicpp::emojize("Emoji :smile: for c++ :+1:") << std::endl;
-    for (auto e:emojicpp::EMOJIS) {
-      std::cout << e.first << "=" << e.second << std::endl;
-    }
-    return 0;
+  for (auto e:emojicpp::emojis) std::cout << e.first << "=" << e.second << std::endl;
+  return 0;
 }
 

@@ -15,14 +15,15 @@ WINTAIL_PREFIX_OBJS=$(WINTAIL_PREFIX_SRCS:.cpp=.o)
 ifneq (${OS},Linux)
 #MSYSTEM=UCRT64
 #MSYSTEM=MINGW64
-#MSYSTEM=CLANG64
-MSYSTEM=MSBUILD
+MSYSTEM=CLANG64
+#MSYSTEM=MSBUILD
 
 MAGICK=/mingw64/bin/magick
 RC=windres
 
 ifeq (${MSYSTEM},MINGW64)
 PATH:=/mingw64/bin:${PATH}
+CPPFLAGS += -D_UNICODE -DUNICODE
 LDFLAGS  += -static
 endif
 
@@ -52,7 +53,8 @@ ifeq (${MSYSTEM},CLANG64)
 PATH:=/clang64/bin:${PATH}
 CC=clang++
 CXX=clang++
-CPPFLAGS += -D_UNICODE -DUNICODE
+GXX=clang++
+#CPPFLAGS += -D_UNICODE -DUNICODE
 LDFLAGS += -pthread -static
 endif
 
@@ -78,14 +80,14 @@ else
 MAGICK=
 UPX=upx
 RC=
-CC=g++
+CC=$(CXX)
 LDFLAGS += -pthread -lrt
 ECHO=echo
 endif
 
 STRIP=strip
 GDB=gdb
-LD=g++
+LD=$(CXX)
 LINE_COUNT=line_count
 PFX2=tailf
 PFX3=randcsv
@@ -121,10 +123,8 @@ cfg :
 	@echo "MSYSTEM ${MSYSTEM}"
 	@echo "${PATH}"
 	@type strip upx convert inkscape iscc
-ifneq ($(MSYSTEM),MSBUILD)
-	@type cc c++ gcc g++ ld windres gdb convert inkscape iscc
+	@type cc c++ gcc g++ clang++ ld windres gdb convert inkscape iscc
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
-endif
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 	@${ECHO} "Single exes=${SINGLE_EXES}"
 
@@ -145,14 +145,14 @@ ifneq ($(MAKECMDGOALS),rclean)
 	${MAGICK} convert -background none $< $@
 
 #ifeq ($(MSBUILD),)
-%.exe: %.o
-	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
-
 %.exe: %.c
 	$(LINK.c) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 %.exe: %.cpp
 	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+%.exe: %.o
+	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 # Régles pour construire les fichier objet d'après les .rc
 %.o : %.rc
