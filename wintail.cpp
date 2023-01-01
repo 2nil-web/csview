@@ -75,6 +75,7 @@ std::vector<std::wstring> cmdLineToWsVec() {
   LPWSTR *wav;
   int ac;
   wav=CommandLineToArgvW(GetCommandLineW(), &ac);
+
   return std::vector<std::wstring>(wav, wav+ac);
 //  std::vector<std::wstring> args=std::vector<std::wstring>(wav, wav+ac);
 }
@@ -776,17 +777,19 @@ BOOL InitApplication(HINSTANCE hInstance) {
   return aReturn;
 }
 
-#ifdef _MSC_VER
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
-#else
-int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow)
-#endif
+//#ifdef _MSC_VER
+//int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
+//#else
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+//int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/ , int nCmdShow)
+//#endif
 {
   g_hInst=hInstance;
   if (!hPrevInstance && !InitApplication(hInstance)) return FALSE;
 
   MSG msg;
   std::vector<std::string> args=cmdLineToSVec();
+  //for (auto arg:args) { std::cout << arg << std::endl; }
 
   if (args.size() == 2 && (args[1] == "-h" || args[1] == "-help" || args[1] == "--help")) {
     std::cout << InfMsg << std::endl;

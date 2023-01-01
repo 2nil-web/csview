@@ -7,8 +7,8 @@ CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 #LDFLAGS  += -static
 LDFLAGS  += -g -Os
 
-PREFIX=wintail
-SRCS=${PREFIX}.cpp reghandle.cpp util.cpp
+PFX0=wintail
+PFX0_SRCS=${PFX0}.cpp reghandle.cpp util.cpp
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
@@ -34,6 +34,7 @@ ifeq (${MSYSTEM},MSBUILD)
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 endif
 
+SRCS=$(wildcard *.cpp)
 ifeq ($(MSBUILD),)
 OBJS=$(SRCS:.cpp=.o)
 endif
@@ -69,10 +70,10 @@ PATH:=${PATH}:/c/UnixTools/bin
 LDLIBS   += -lurlmon
 LDLIBS   += -lwsock32 -lole32 -luuid -lcomctl32 -loleaut32 -lgdi32
 UPX=upx
-OBJS += ${PREFIX}_res.o
+OBJS += ${PFX0}_res.o
 
 ECHO=echo -e
-TARGETS+=${PREFIX}${EXEXT}
+TARGETS+=${PFX0}${EXEXT}
 else
 MAGICK=
 UPX=upx
@@ -87,31 +88,35 @@ GDB=gdb
 LD=g++
 PFX1=line_count
 PFX2=tailf
-TARGETS +=  ${PFX1}${EXEXT} ${PFX2}${EXEXT}
+PFX3=randcsv
+PFX4=emojis
+TARGETS += ${PFX0}${EXEXT} ${PFX1}${EXEXT} ${PFX2}${EXEXT} ${PFX3}${EXEXT} ${PFX4}${EXEXT}
 
 
 all : ${TARGETS}
 
 ifeq ($(MSBUILD),)
-${PREFIX}${EXEXT} : ${OBJS}
+${PFX0}${EXEXT} : ${OBJS}
 else
-${PREFIX}${EXEXT} : ${SRCS}
+${PFX0}${EXEXT} : ${PFX0_SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
-	cp x64/Release/${PREFIX}${EXEXT} .	
+	cp x64/Release/${PFX0}${EXEXT} .	
 endif
 
 
-${PFX1}${EXEXT} : ${PFX1}.cpp
-	${CXX} ${CXXFLAGS} ${PFX1}.cpp  -o ${PFX1}
+${PFX1}${EXEXT} : ${PFX1}.o
+	${CXX} ${CXXFLAGS} $^  -o $@
 
-${PFX2}${EXEXT} : ${PFX2}.cpp
-	${CXX} ${CXXFLAGS} ${PFX2}.cpp  -o ${PFX2}
+${PFX2}${EXEXT} : ${PFX2}.o
+	${CXX} ${CXXFLAGS} $^  -o $@
 
-ifneq ($(MSBUILD),)
-${PREFIX}${EXEXT} : ${OBJS}
-endif
+${PFX3}${EXEXT} : ${PFX3}.o
+	${CXX} ${CXXFLAGS} $^  -o $@
 
-${PREFIX}_res.o : ${PREFIX}.ico
+${PFX4}${EXEXT} : ${PFX4}.o
+	${CXX} ${CXXFLAGS} $^  -o $@
+
+${PFX0}_res.o : ${PFX0}.ico
 
 strip : $(TARGETS)
 	@file ${TARGETS} | grep stripped >/dev/null || ( $(STRIP) $(TARGETS) && echo "Strip OK" )
@@ -131,10 +136,10 @@ endif
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 
 clean :
-	rm -f *~ *.o $(OBJS) ${PREFIX}.ico
+	rm -f *~ *.o $(OBJS) ${PFX0}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PREFIX}.ico *.exe
+	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PFX0}.ico *.exe
 	rm -rf x64
 
 
@@ -159,6 +164,7 @@ ifeq ($(MSBUILD),)
 # Régles pour construire les fichier objet d'après les .rc
 %.o : %.rc
 	$(RC) $(CPPFLAGS) $< --include-dir . $(OUTPUT_OPTION)
+endif
 
 %.d: %.c
 	@echo Checking header dependencies from $<
@@ -170,9 +176,8 @@ ifeq ($(MSBUILD),)
 	@$(COMPILE.cpp) -isystem /usr/include -MM $< >> $@
 
 # Inclusion des fichiers de dépendance .d
-ifdef OBJS
--include $(OBJS:.o=.d)
-endif
+ifdef SRCS
+-include $(SRCS:.cpp=.d)
 endif
 endif
 
