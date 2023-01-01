@@ -13,10 +13,10 @@ WINTAIL_PREFIX_OBJS=$(WINTAIL_PREFIX_SRCS:.cpp=.o)
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
-#MSYSTEM=UCRT64
-#MSYSTEM=MINGW64
-MSYSTEM=CLANG64
-#MSYSTEM=MSBUILD
+#BUILD_SYSTEM=UCRT64
+BUILD_SYSTEM=MINGW64
+#BUILD_SYSTEM=CLANG64
+#BUILD_SYSTEM=MSBUILD
 
 MAGICK=/mingw64/bin/magick
 RC=windres
@@ -34,6 +34,7 @@ endif
 
 ifeq (${MSYSTEM},MSBUILD)
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+PATH:=/mingw64/bin:${PATH}
 endif
 
 EXEXT=.exe
@@ -49,7 +50,7 @@ endif
 
 # CLANG n'accepte pas les fichiers en ISO-8859
 # Pour utiliser clang il faut passer par le shell clang64.exe de msys2
-ifeq (${MSYSTEM},CLANG64)
+ifeq (${BUILD_SYSTEM},CLANG64)
 PATH:=/clang64/bin:${PATH}
 CC=clang++
 CXX=clang++
@@ -120,10 +121,13 @@ upx : $(TARGETS)
 	$(UPX) -q $(TARGETS) 2>/dev/null || true
 
 cfg :
-	@echo "MSYSTEM ${MSYSTEM}"
+	@echo "BUILD_SYSTEM ${BUILD_SYSTEM}"
 	@echo "${PATH}"
 	@type strip upx convert inkscape iscc
-	@type cc c++ gcc g++ clang++ ld windres gdb convert inkscape iscc
+ifeq (${MSYSTEM},CLANG64)
+	@type clang clang++
+endif
+	@type cc c++ gcc g++ ld windres gdb convert inkscape iscc
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 	@${ECHO} "Single exes=${SINGLE_EXES}"
