@@ -7,16 +7,17 @@ CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 #LDFLAGS  += -static
 LDFLAGS  += -g -Os
 
-PFX0=wintail
-PFX0_SRCS=${PFX0}.cpp reghandle.cpp util.cpp
+WINTAIL_PREFIX=wintail
+WINTAIL_PREFIX_SRCS=${WINTAIL_PREFIX}.cpp reghandle.cpp util.cpp
+WINTAIL_PREFIX_OBJS=$(WINTAIL_PREFIX_SRCS:.cpp=.o)
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
 #MSYSTEM=UCRT64
 #MSYSTEM=MINGW64
-
 #MSYSTEM=CLANG64
 MSYSTEM=MSBUILD
+
 MAGICK=/mingw64/bin/magick
 RC=windres
 
@@ -34,9 +35,14 @@ ifeq (${MSYSTEM},MSBUILD)
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 endif
 
+EXEXT=.exe
 SRCS=$(wildcard *.cpp)
+SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS},${SRCS})
+SINGLE_EXES=$(SINGLE_SRCS:.cpp=${EXEXT})
+
 ifeq ($(MSBUILD),)
 OBJS=$(SRCS:.cpp=.o)
+OBJS += ${WINTAIL_PREFIX}_res.o
 endif
 
 
@@ -48,13 +54,8 @@ CC=clang++
 CXX=clang++
 CPPFLAGS += -D_UNICODE -DUNICODE
 LDFLAGS += -pthread -static
-#else
-#CC=gcc
-#CXX=g++
-#LDFLAGS += -L /usr/local/lib64
 endif
 
-EXEXT=.exe
 LDFLAGS += -mwindows
 LDLIBS  +=  -lwsock32 -lws2_32
 
@@ -70,10 +71,9 @@ PATH:=${PATH}:/c/UnixTools/bin
 LDLIBS   += -lurlmon
 LDLIBS   += -lwsock32 -lole32 -luuid -lcomctl32 -loleaut32 -lgdi32
 UPX=upx
-OBJS += ${PFX0}_res.o
 
 ECHO=echo -e
-TARGETS+=${PFX0}${EXEXT}
+TARGETS+=${WINTAIL_PREFIX}${EXEXT} ${SINGLE_EXES}
 else
 MAGICK=
 UPX=upx
@@ -86,37 +86,29 @@ endif
 STRIP=strip
 GDB=gdb
 LD=g++
-PFX1=line_count
+LINE_COUNT=line_count
 PFX2=tailf
 PFX3=randcsv
 PFX4=emojis
-TARGETS += ${PFX0}${EXEXT} ${PFX1}${EXEXT} ${PFX2}${EXEXT} ${PFX3}${EXEXT} ${PFX4}${EXEXT}
 
 
-all : ${TARGETS}
+all : ${WINTAIL_PREFIX}.ico ${TARGETS}
 
 ifeq ($(MSBUILD),)
-${PFX0}${EXEXT} : ${OBJS}
+${WINTAIL_PREFIX}${EXEXT} :  ${OBJS}
 else
-${PFX0}${EXEXT} : ${PFX0_SRCS}
+${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_PREFIX_SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
-	cp x64/Release/${PFX0}${EXEXT} .	
+	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .	
 endif
 
 
-${PFX1}${EXEXT} : ${PFX1}.o
-	${CXX} ${CXXFLAGS} $^  -o $@
+${PFX4}.o : emoji_map.h
 
-${PFX2}${EXEXT} : ${PFX2}.o
-	${CXX} ${CXXFLAGS} $^  -o $@
+emoji_map.h :
+	./gen_emojis.sh
 
-${PFX3}${EXEXT} : ${PFX3}.o
-	${CXX} ${CXXFLAGS} $^  -o $@
-
-${PFX4}${EXEXT} : ${PFX4}.o
-	${CXX} ${CXXFLAGS} $^  -o $@
-
-${PFX0}_res.o : ${PFX0}.ico
+${WINTAIL_PREFIX}_res.o : ${WINTAIL_PREFIX}.ico
 
 strip : $(TARGETS)
 	@file ${TARGETS} | grep stripped >/dev/null || ( $(STRIP) $(TARGETS) && echo "Strip OK" )
@@ -134,12 +126,13 @@ ifneq ($(MSYSTEM),MSBUILD)
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
 endif
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
+	@${ECHO} "Single exes=${SINGLE_EXES}"
 
 clean :
-	rm -f *~ *.o $(OBJS) ${PFX0}.ico
+	rm -f *~ *.o $(OBJS) ${WINTAIL_PREFIX}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${PFX0}.ico *.exe
+	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${WINTAIL_PREFIX}.ico *.exe
 	rm -rf x64
 
 
@@ -151,7 +144,7 @@ ifneq ($(MAKECMDGOALS),rclean)
 %.ico : %.svg
 	${MAGICK} convert -background none $< $@
 
-ifeq ($(MSBUILD),)
+#ifeq ($(MSBUILD),)
 %.exe: %.o
 	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
@@ -164,7 +157,7 @@ ifeq ($(MSBUILD),)
 # Régles pour construire les fichier objet d'après les .rc
 %.o : %.rc
 	$(RC) $(CPPFLAGS) $< --include-dir . $(OUTPUT_OPTION)
-endif
+#endif
 
 %.d: %.c
 	@echo Checking header dependencies from $<

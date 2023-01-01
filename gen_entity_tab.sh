@@ -16,17 +16,16 @@ gen_entity () {
   echo "std::vector<std::pair<wchar_t, std::string>> ent_sym = {"
   echo -n "  { L'\0', \"&;\"    }, // First one must of that kind (don't ask)"
   let n=0
-  while read sy ch;
+  let sw=8
+  while read c1 c2
   do
     (( n == 0 )) || echo -n ", "
-    if (( n % 3 == 0 )); then
-      echo; echo -n "  "
-    fi
+    #(( n % 3 == 0 )) && echo && echo -n "  "
     let n++
-    let l=8-${#sy}
+    let l=$sw-${#c1}
     s=""
     for ((i=0; i < $l; i++)); do s+=" "; done
-    echo -n "{ L'${ch}', \"&${sy};\" ${s}}"
+    echo -n "{ L'${c2}', \"&${c1};\" ${s}}"
   done <<EOF
 acute ´
 alpha α

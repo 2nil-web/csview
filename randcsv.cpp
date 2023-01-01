@@ -26,9 +26,9 @@ int main(int argc, char *argv[]) {
   std::cout << "SizeOf Long Long " << sizeof(long long) << std::endl;
   std::cout << "MAX number of string char " << (unsigned long)pow(2, sizeof(std::string)*sizeof(char)*8) << std::endl;
   std::cout << "MAX char " << (char)1114110 << std::endl;
-  std::cout << "MAX char " << (char)18446744073709551614 << std::endl;
+//  std::cout << "MAX char " << (char)18446744073709551614 << std::endl;
   for (size_t i=0; i < 65535; i++) {
     if (std::isprint(i)) std::cout << (char)i;
   }
 }
-
+// 1 114 111
