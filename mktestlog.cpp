@@ -104,7 +104,6 @@ bool iso_to_time_info(std::string s, s_time_info& ti, bool strict_checking=false
     ti.localtime=mktime(&ti.t);
     // Get gm time (=localtime-timezone)
     ti.gmtime=ti.localtime-timezone;
-    std::cout << "TIMEZONE " << timezone << std::endl;
 
     // XXXX.XX.XX.XX.XX.XXZ GMT time representation
     if (s.size() == 20 && s[19] == 'Z') ;
