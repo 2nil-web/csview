@@ -8,11 +8,8 @@
 #include <cstdio>
 #include <cerrno>
 #include <system_error>
-#include <expected>
-
 #include <memory>
 #include <string>
-#include <stdexcept>
 
 // https://github.com/Dyrcona/libunistdcpp/blob/devel/include/unistd/asprintf.h
 template<typename T>

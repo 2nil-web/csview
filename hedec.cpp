@@ -35,7 +35,7 @@ size_t replace_html_all_entities(std::wstring &s, bool remove=false) {
   // Remplace les entités symbole, s'il y en a ...
   for (auto &es : ent_sym) {
     do {
-      found=s.rfind(es.second);
+      found=s.rfind(s2ws(es.second));
       if (found != std::wstring::npos) {
         std::cout << "Found entity symbol " << es.second << std::endl;
         if (remove) s.replace(found, es.second.length(), L"");

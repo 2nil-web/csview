@@ -58,7 +58,7 @@ bool is_positive_integer(const std::string &s) {
 bool flush_cache_for_file(std::string s) {
   bool ret=false;
 
-  HANDLE hFile=CreateFile(s.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE hFile=CreateFile((wchar_t *)s.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (hFile != INVALID_HANDLE_VALUE) {
     ret=FlushFileBuffers(hFile);
     CloseHandle(hFile);
