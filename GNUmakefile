@@ -100,6 +100,8 @@ ${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_PREFIX_SRCS}
 	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .	
 endif
 
+$(SINGLE_EXES): %.exe: %.cpp
+	$(CXX)  -Wall -Wextra -std=c++20 -pedantic $< -o $@
 
 emojis.o : emoji_map.h
 
