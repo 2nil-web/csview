@@ -32,85 +32,110 @@ void csv::file::setfmt(bool _is_csv,
   max_cell_size=_max_cell_size;
 }
 
-bool csv::file::read(std::string &file_path) {
-  std::ifstream in(file_path);
-  char c;
+void csv::file::parse(char c) {
+  if (is_csv) {
+    // Ignore current character meaning as it is escaped
+    if (currently_escaped) {
+      currently_escaped=false;
+      curr_pos++;
+      return;
+    }
 
-  std::uintmax_t curr_pos=0;
-  row curr_row;
-  cell curr_cell;
-  bool currently_escaped=false, currently_delimited=false;
+    // Continue on same cell as it contains a delimited string
+    // While next delimiter which marks end of delimited string is not found
+    if (currently_delimited) {
+      if (c == string_delimiter) currently_delimited=false;
+      curr_pos++;
+      return;
+    }
+
+    // Next character is escaped
+    if (c == escape) {
+      currently_escaped=false;
+    }
+
+    // Current cell contains a delimited string
+    if (c == string_delimiter) {
+      currently_delimited=true;
+    }
+
+    // End of cell, store current cell into current row
+    if (c == cell_separator) {
+      curr_cell.end=curr_pos;
+      curr_row.cells.push_back(curr_cell);
+      curr_cell.reset();
+      curr_cell.start=curr_pos+1;
+    }
+  }
+
+  // End of line, store current cell into current row into file
+  if (c == end_of_line) {
+    curr_cell.end=curr_pos;
+    curr_row.end=curr_pos;
+
+    if (curr_cell.start != 0 || curr_row.start == 0) {
+      curr_row.cells.push_back(curr_cell);
+      if (curr_row.start != curr_row.end) rows.push_back(curr_row);
+    }
+
+    curr_cell.reset();
+    curr_row.reset();
+    curr_cell.start=curr_row.start=curr_pos+1;
+  }
+
+  curr_pos++;
+}
+
+
+void csv::file::end_parse() {
+  if (curr_cell.start < curr_pos && curr_row.cells.size () > 0) {
+    curr_cell.end=curr_row.end=curr_pos;
+    curr_row.cells.push_back(curr_cell);
+    rows.push_back(curr_row);
+    curr_row.reset();
+  }
+}
+
+bool swallow_file(std::string &file_path, std::string &s) {
+  std::ifstream in(file_path, std::ios::in | std::ios::binary);
+
+  if (in) {
+    in.seekg(0, std::ios::end);
+    s.resize(in.tellg());
+    in.seekg(0, std::ios::beg);
+    in.read(&s[0], s.size());
+    in.close();
+    return true;
+  }
+
+  return false;
+}
+
+// Put whole file in memory then process
+bool csv::file::read_in_memory(std::string &file_path) {
+  std::string s;
+  if (swallow_file(file_path, s)) {
+    for(auto c:s) parse(c);
+    end_parse();
+    return true;
+  }
+
+  return false;
+}
+
+// Process while reading char by char
+bool csv::file::read_from_file(std::string &file_path) {
+  std::ifstream in(file_path);
 
   if (in.is_open()) {
     //std::uintmax_t file_length=std::filesystem::file_size(std::filesystem::path{fname});
 
     while(in.good()) {
       in.get(c);
-
-      if (is_csv) {
-        // Ignore current character meaning as it is escaped
-        if (currently_escaped) {
-          currently_escaped=false;
-          curr_pos++;
-          continue;
-        }
-
-        // Continue on same cell as it contains a delimited string
-        // While next delimiter which marks end of delimited string is not found
-        if (currently_delimited) {
-          if (c == string_delimiter) currently_delimited=false;
-          curr_pos++;
-          continue;
-        }
-
-        // Next character is escaped
-        if (c == escape) {
-          currently_escaped=false;
-        }
-
-        // Current cell contains a delimited string
-        if (c == string_delimiter) {
-          currently_delimited=true;
-        }
-
-        // End of cell, store current cell into current row
-        if (c == cell_separator) {
-          curr_cell.end=curr_pos;
-          curr_row.cells.push_back(curr_cell);
-          curr_cell.reset();
-          curr_cell.start=curr_pos+1;
-        }
-      }
-
-      // End of line, store current cell into current row into file
-      if (c == end_of_line) {
-        curr_cell.end=curr_pos;
-        curr_row.end=curr_pos;
-
-        if (curr_cell.start != 0 || curr_row.start == 0) {
-          curr_row.cells.push_back(curr_cell);
-          if (curr_row.start != curr_row.end) rows.push_back(curr_row);
-        }
-
-        curr_cell.reset();
-        curr_row.reset();
-        curr_cell.start=curr_row.start=curr_pos+1;
-      }
-
-      curr_pos++;
+      parse(c);
     }
 
-    if (curr_cell.start < curr_pos && curr_row.cells.size () > 0) {
-      curr_cell.end=curr_row.end=curr_pos;
-      curr_row.cells.push_back(curr_cell);
-      rows.push_back(curr_row);
-      curr_row.reset();
-    }
-/*
-    if (curr_row.start != curr_row.end) {
-      if (curr_row.end == 0) curr_row.end=curr_pos;
-      rows.push_back(curr_row);
-    }*/
+    end_parse();
   }
 
   if (!in.eof() && in.fail()) {
@@ -121,8 +146,6 @@ bool csv::file::read(std::string &file_path) {
   in.close();
   return true;
 }
-
-//bool csv::file::read(std::string &file_path) { return read(file_path, cell_separator, string_delimiter, end_of_line, escape); }
 
 void csv::file::stat(bool line_by_line) {
   std::uintmax_t 
@@ -210,6 +233,15 @@ int main(int argc, char *argv[]) {
   prog_basename=std::filesystem::path(args[0]).stem().string();
   args.erase(args.begin());
 
+  if (args.size() == 0) {
+    std::cerr << "At least file name" << std::endl;
+    std::cerr << "Other optionnal arguments are boolean (1/0, on/off, true/false). Default is always true." << std::endl;
+    std::cerr << "Read as cvs or not." << std::endl;
+    std::cerr << "Stats line by line or not." << std::endl;
+    std::cerr << "Read file in memory or not." << std::endl;
+    return 1;
+  }
+
   bool is_csv;
   if (args.size() > 1) {
     is_csv=string_to_bool(args[1]);
@@ -220,19 +252,25 @@ int main(int argc, char *argv[]) {
     line_by_line=string_to_bool(args[2]);
   }
 
+  bool read_in_memory=true;
+  if (args.size() > 3) {
+    read_in_memory=string_to_bool(args[3]);
+  }
+
   if (args.size() > 0) {
     csv::file cf;
     cf.setfmt(is_csv);
 
     delay();
-    cf.read(args[0]);
-    double dl=delay(false);
-    std::cout << "Delay to read file " << args[1] << ' ' << dl << " seconds." << std::endl;
+    if (read_in_memory) cf.read_in_memory(args[0]);
+    else cf.read_from_file(args[0]);
+    double dl1=delay(false);
 
     delay();
     cf.stat(line_by_line);
-    dl=delay(false);
-    std::cout << "Delay to compute stats " << dl << " seconds." << std::endl;
+    double dl2=delay(false);
+    std::cout << "Delay to read file " << args[1] << ' ' << dl1 << " seconds." << std::endl;
+    std::cout << "Delay to compute stats " << dl2 << " seconds." << std::endl;
 
     std::cout << "Total mem " << getTotalSystemMemory() << std::endl;
   }

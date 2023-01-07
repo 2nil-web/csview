@@ -12,7 +12,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <cerrno>
 #include <tuple>
+
 #ifdef __WIN32__
 #include <windows.h>
 #else
@@ -42,6 +44,12 @@ namespace csv {
     size_t max_line_count=256, min_cell_size=8, max_cell_size=256;
     std::vector<row> rows;
 
+    char c;
+    std::uintmax_t curr_pos=0;
+    row curr_row;
+    cell curr_cell;
+    bool currently_escaped=false, currently_delimited=false;
+    
     public:
     file ()  { };
     ~file ()  { };
@@ -56,7 +64,10 @@ namespace csv {
       size_t _max_cell_size=256
     );
 
-    bool read(std::string &file_path);
+    void parse(char c);
+    void end_parse();
+    bool read_from_file(std::string &);
+    bool read_in_memory(std::string &);
     void stat(bool line_by_line=true);
   };
 }
