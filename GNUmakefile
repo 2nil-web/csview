@@ -64,11 +64,12 @@ RC=windres
 
 EXEXT=.exe
 SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
 SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS},${SRCS})
-SINGLE_EXES=$(SINGLE_SRCS:.cpp=${EXEXT})
+SINGLE_OBJS=$(SINGLE_SRCS:.cpp=.o)
+SINGLE_EXES=$(SINGLE_OBJS:.o=${EXEXT})
 
 ifeq ($(MSBUILD),)
-OBJS=$(SRCS:.cpp=.o)
 OBJS += ${WINTAIL_PREFIX}_res.o
 endif
 
@@ -100,13 +101,17 @@ ${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_PREFIX_SRCS}
 	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .	
 endif
 
-${SINGLE_EXES}: %${EXEXT}: %.cpp
-	$(CXX) -D_UNICODE -DUNICODE -Wall -Wextra -std=c++20 -pedantic $< -o $@
+${SINGLE_OBJS}: %.o: %.cpp
+	$(CXX) -D_UNICODE -DUNICODE -Wall -Wextra -std=c++20 -pedantic -c $< -o $@
 
-emojis.o : emoji_map.h
+${SINGLE_EXES}: %${EXEXT}: %.o
+	$(CXX) $^ -o $@
 
 emoji_map.h :
 	./gen_emojis.sh
+
+ent_sym.h :
+	./gen_entity_tab.sh
 
 ${WINTAIL_PREFIX}_res.o : ${WINTAIL_PREFIX}.ico
 
@@ -134,7 +139,7 @@ clean :
 	rm -f *~ *.o $(OBJS) ${WINTAIL_PREFIX}.ico
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGETS) ${WINTAIL_PREFIX}.ico *.exe
+	rm -f *~ *.d *.o emoji_map.h ent_sym.h $(OBJS) $(TARGETS) ${WINTAIL_PREFIX}.ico *.exe
 	rm -rf x64
 
 
@@ -163,16 +168,16 @@ ifneq ($(MAKECMDGOALS),rclean)
 
 %.d: %.c
 	@echo Checking header dependencies from $<
-	@$(COMPILE.c) -isystem /usr/include -MM $< >> $@
+	@$(COMPILE.c) -isystem /usr/include -MM -MG $< > $@
 
 #	@echo "Building "$@" from "$<
 %.d: %.cpp
 	@echo Checking header dependencies from $<
-	@$(COMPILE.cpp) -isystem /usr/include -MM $< >> $@
+	@$(COMPILE.cpp) -isystem /usr/include -MM -MG $< > $@
 
 # Inclusion des fichiers de dépendance .d
-ifdef SRCS
--include $(SRCS:.cpp=.d)
+ifdef OBJS
+-include $(OBJS:.o=.d)
 endif
 endif
 
