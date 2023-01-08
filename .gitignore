@@ -8,3 +8,5 @@ x64
 *.log
 RES
 .vs
+emoji_map.h
+ent_sym.h
