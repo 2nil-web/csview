@@ -6,6 +6,9 @@
 #ifdef __WIN32
 #define gmtime_r(a,b) gmtime_s(b,a)
 #define localtime_r(a,b) localtime_s(b,a)
+#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have", tt)
+#else
+#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *__tzname, __timezone, __daylight?"has":"does not have", tt)
 #endif
 
 void print_iso_time(char *msg, struct tm* t) {
@@ -16,10 +19,9 @@ void print_iso_time(char *msg, struct tm* t) {
   strftime(daybuf, sizeof(daybuf), "%Y-%m-%dT%H:%M:%S", t);
   time_t tt=mktime(t);
 
-  printf("%lld ==> %s\n", tt, daybuf);
+  printf("%ld ==> %s\n", tt, daybuf);
 }
 
-#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *__tzname, __timezone, __daylight?"has":"does not have", tt)
 
 int main(int argc, char **argv) {
   struct tm t;
