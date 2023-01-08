@@ -10,3 +10,13 @@ RES
 .vs
 emoji_map.h
 ent_sym.h
+asc2ch
+emojis
+filetime
+line_count
+mkt
+mktestlog
+randcsv
+readcsv
+subread
+tailf
