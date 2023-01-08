@@ -79,11 +79,12 @@ LDFLAGS += -pthread -lrt
 ECHO=echo
 STRIP=strip
 GDB=gdb
+WIN_ONLY_SRCS=hedec.cpp wintail.cpp reghandle.cpp util.cpp tailf.cpp
 endif
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)
-SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS},${SRCS})
+SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS} ${WIN_ONLY_SRCS},${SRCS})
 SINGLE_OBJS=$(SINGLE_SRCS:.cpp=.o)
 SINGLE_EXES=$(SINGLE_OBJS:.o=${EXEXT})
 TARGETS+=${SINGLE_EXES}
@@ -150,8 +151,7 @@ ifeq (${MSYSTEM},CLANG64)
 endif
 	@type cc c++ gcc g++ ld gdb
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
-	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
-	@${ECHO} "Single exes=${SINGLE_EXES}"
+	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}\nSINGLE_EXES=${SINGLE_EXES}"
 
 clean :
 	rm -f *~ *.o $(OBJS) ${WINTAIL_PREFIX}.ico

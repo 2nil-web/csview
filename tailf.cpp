@@ -6,7 +6,9 @@
 #include <algorithm>
 #include <thread>
 
+#ifdef __WIN32__
 #include <windows.h>
+#endif
 
 std::vector<std::string> args, envs;
 std::string prog_basename;
