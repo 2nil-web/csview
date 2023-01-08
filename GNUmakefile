@@ -60,18 +60,12 @@ RC=windres
 
 
 EXEXT=.exe
-SRCS=$(wildcard *.cpp)
-OBJS=$(SRCS:.cpp=.o)
-SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS},${SRCS})
-SINGLE_OBJS=$(SINGLE_SRCS:.cpp=.o)
-SINGLE_EXES=$(SINGLE_OBJS:.o=${EXEXT})
-
 ifeq ($(MSBUILD),)
 OBJS += ${WINTAIL_PREFIX}_res.o
 endif
 
 ECHO=echo -e
-TARGETS+=${WINTAIL_PREFIX}${EXEXT} ${SINGLE_EXES}
+TARGETS+=${WINTAIL_PREFIX}${EXEXT}
 
 else
 #ARCH_PATH=/usr/local/gcc12/bin
@@ -87,6 +81,14 @@ STRIP=strip
 GDB=gdb
 endif
 
+SRCS=$(wildcard *.cpp)
+OBJS=$(SRCS:.cpp=.o)
+SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS},${SRCS})
+SINGLE_OBJS=$(SINGLE_SRCS:.cpp=.o)
+SINGLE_EXES=$(SINGLE_OBJS:.o=${EXEXT})
+TARGETS+=${SINGLE_EXES}
+
+
 CC:=${ARCH_PATH}/${CC}
 CXX:=${ARCH_PATH}/${CXX}
 GCC:=${CC}
@@ -100,7 +102,11 @@ UPX=upx
 #LD=$(CXX)
 LINE_COUNT=line_count
 
+ifneq (${OS},Linux)
 all : ${WINTAIL_PREFIX}.ico ${TARGETS}
+else
+all : ${TARGETS}
+endif
 
 ifeq ($(MSBUILD),)
 ${WINTAIL_PREFIX}${EXEXT} :  ${OBJS}
