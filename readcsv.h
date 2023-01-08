@@ -61,7 +61,7 @@ namespace csv {
     void setfmt(
       bool _is_csv=true,
       char _cell_separator=';',
-      char _string_delimiter='"',
+      char _string_delimiter='\0',
       char _end_of_line='\n',
       char _escape='\\',
       size_t _max_line_count=256,
@@ -75,6 +75,8 @@ namespace csv {
     void list(std::uintmax_t r1, std::uintmax_t r2);
     void list(std::uintmax_t r);
     void list();
+    bool parse_range(std::string, std::vector<std::uintmax_t>&);
+    bool parse_list(std::string, std::vector<std::uintmax_t>&);
   };
 }
 
