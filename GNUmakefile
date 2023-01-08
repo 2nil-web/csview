@@ -30,7 +30,7 @@ endif
 # Pour utiliser clang il faut passer par le shell clang64.exe de msys2
 ifeq (${MSYSTEM},CLANG64)
 ARCH_PATH=/clang64/bin
-CC=clang++
+CC=clang
 CXX=clang++
 #CPPFLAGS += -D_UNICODE -DUNICODE
 #LDFLAGS += -pthread -static
@@ -74,7 +74,7 @@ PATH:=${ARCH_PATH}:${PATH}
 MAGICK=
 UPX=upx
 RC=
-CC=$(CXX)
+#CC=$(CXX)
 LDFLAGS += -pthread -lrt
 ECHO=echo
 STRIP=strip
