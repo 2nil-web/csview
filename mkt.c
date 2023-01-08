@@ -19,7 +19,7 @@ void print_iso_time(char *msg, struct tm* t) {
   printf("%lld ==> %s\n", tt, daybuf);
 }
 
-#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *tzname, timezone, daylight?"has":"does not have", tt)
+#define ptz(msg) printf(msg"The time zone is %s (%ld seconds away from GMT) and %s daylight saving time (dst), time_t %lld. DST could add or remove shifting seconds to the time zone.\n", *__tzname, __timezone, __daylight?"has":"does not have", tt)
 
 int main(int argc, char **argv) {
   struct tm t;
