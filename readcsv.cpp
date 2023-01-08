@@ -18,6 +18,36 @@ double getTotalSystemMemory() {
     return (double)mem_in_byte/1048576;
 }
 
+void csv::file::list(std::uintmax_t r1, std::uintmax_t r2) {
+  if (r1 > rows.size()) {
+    std::cout << "row start value (" << r1 << ") is beyond last row value (" << rows.size() << "." << std::endl;
+    return;
+  }
+
+  if (r2 > rows.size()) {
+    std::cout << "row end value (" << r2 << ") is beyond last row value (" << rows.size() << ", will stop on last row." << std::endl;
+    r2=rows.size();
+  }
+}
+
+void csv::file::list(std::uintmax_t r) { list(r, r); }
+
+void csv::file::list() {
+  if (rows.size() > 1000) {
+    std::string rep;
+    std::cout << "There is more than a thousand rows to display. Are you sure that you want to proceed ? (y/n)" << std::endl;
+    std::cin >> rep;
+    if (rep != "y") return;
+  }
+
+  for(auto row:rows) {
+    //std::cout << row.start << ',' << row.end << std::endl;
+    if (loaded_in_mem) {
+      std::cout << in_mem.substr(row.start, row.end-row.start) << std::endl;
+    } else {
+    }
+  }
+}
 
 void csv::file::setfmt(bool _is_csv,
     char _cell_separator, char _string_delimiter, char _end_of_line, char _escape,
@@ -113,9 +143,10 @@ bool swallow_file(std::string &file_path, std::string &s) {
 
 // Put whole file in memory then process
 bool csv::file::read_in_memory(std::string &file_path) {
-  std::string s;
-  if (swallow_file(file_path, s)) {
-    for(auto c:s) parse(c);
+  loaded_in_mem=true;
+
+  if (swallow_file(file_path, in_mem)) {
+    for(auto c:in_mem) parse(c);
     end_parse();
     return true;
   }
@@ -125,6 +156,8 @@ bool csv::file::read_in_memory(std::string &file_path) {
 
 // Process while reading char by char
 bool csv::file::read_from_file(std::string &file_path) {
+  loaded_in_mem=false;
+
   std::ifstream in(file_path);
 
   if (in.is_open()) {
@@ -228,26 +261,83 @@ bool string_to_bool(std::string s) {
   return false;
 }
 
+void usage(std::string progpath, std::ostream& out = std::cout) {
+    out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
+    out <<
+        R"EOF(CSV or text file viewer at command line
+Optionnal parameters :        
+  -h : display this help.
+  -i : batch (non interactive) mode is the default, this paraemter give access to the interactive mode. Once done, type the "help" command for more information.
+At least the name of the file to browse must be provided.
+Then 3 other optional arguments might be provided in boolean form (1/0, on/off, true/false):
+  Read as cvs (-on) or read as a text file (off), by default this argument is on.
+  Stats line by line or notff in interactive mode and on in batch mode.
+  Read file in memory or not.
+In interactive mode they are off by default. In non-interactive mode they are on by default.
+)EOF";
+  //exit(EXIT_SUCCESS);
+}
+
+
+void help() {
+  std::cout << R"EOF(
+Available commands are :
+help: display this message
+stat: display various statistics on the current file
+row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
+cell: displays cells of the current file. Parameters are mandatory. They are of the form r1,c1. They might be provided in range form "r1,c1-r2,c2" or in list form "r1,c1 r2,c2 r3,c3 ...".
+reload: reload the current file. This might be useful if the file has been modified.
+load filename: load a new file and set it as the current file.
+ls: list all the currently loaded file.
+set n: set the file numbered n as the current file.
+exit: leave interactive mode.
+)EOF";
+
+}
+
+std::string trim(std::string& s) {
+  s.erase(0, s.find_first_not_of(" \n\r\t"));
+  s.erase(s.find_last_not_of(" \n\r\t")+1);
+  return s;
+}
+
+bool parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
+  return false;
+}
+
+bool parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
+  return false;
+}
+
 int main(int argc, char *argv[]) {
   args=std::vector<std::string>(argv, argv + argc);
   prog_basename=std::filesystem::path(args[0]).stem().string();
   args.erase(args.begin());
 
   if (args.size() == 0) {
-    std::cerr << "At least file name" << std::endl;
-    std::cerr << "Other optionnal arguments are boolean (1/0, on/off, true/false). Default is always true." << std::endl;
-    std::cerr << "Read as cvs or not." << std::endl;
-    std::cerr << "Stats line by line or not." << std::endl;
-    std::cerr << "Read file in memory or not." << std::endl;
+    usage(prog_basename, std::cerr);
     return 1;
   }
 
-  bool is_csv;
-  if (args.size() > 1) {
-    is_csv=string_to_bool(args[1]);
+  if (args[0] == "-h") {
+    usage(prog_basename);
+    return 0;
   }
 
-  bool line_by_line=true;
+  bool interactive=false;
+
+  if (args[0] == "-i") {
+    interactive=true;
+    args.erase(args.begin());
+  }
+
+  bool is_csv=true;
+  if (args.size() > 1) is_csv=string_to_bool(args[1]);
+
+  bool line_by_line;
+  if (interactive) line_by_line=false;
+  else line_by_line=true;
+
   if (args.size() > 2) {
     line_by_line=string_to_bool(args[2]);
   }
@@ -262,17 +352,46 @@ int main(int argc, char *argv[]) {
     cf.setfmt(is_csv);
 
     delay();
-    if (read_in_memory) cf.read_in_memory(args[0]);
-    else cf.read_from_file(args[0]);
+    if (read_in_memory) {
+      cf.read_in_memory(args[0]);
+      std::cout << "File " << args[0] << " loaded in memory." << std::endl;
+    } else {
+      cf.read_from_file(args[0]);
+      std::cout << "File " << args[0] << " parsed." << std::endl;
+    }
     double dl1=delay(false);
 
-    delay();
-    cf.stat(line_by_line);
-    double dl2=delay(false);
-    std::cout << "Delay to read file " << args[1] << ' ' << dl1 << " seconds." << std::endl;
-    std::cout << "Delay to compute stats " << dl2 << " seconds." << std::endl;
+    if (interactive) {
+      std::string ln, prompt="> ";
+      std::cout << prompt << std::flush;
+      while (std::getline(std::cin, ln)) {
+        trim(ln);
+        if (ln == "help") help();
+        if (ln == "exit" || ln == "quit") break;
+        if (ln == "stat") cf.stat(false);
 
-    std::cout << "Total mem " << getTotalSystemMemory() << std::endl;
+        if (ln.starts_with("row")) {
+          ln.erase(ln.begin(), ln.begin()+3);
+          trim(ln);
+          if (ln == "") cf.list();
+          else {
+            std::vector<std::uintmax_t> parm;
+            if (!parse_range(ln, parm)) {
+            } else if (parse_list(ln, parm)) {
+            }
+          }
+        }
+
+        std::cout << prompt << std::flush;
+      }
+    } else {
+      delay();
+      cf.stat(line_by_line);
+      double dl2=delay(false);
+      std::cout << "Delay to read file " << args[1] << ' ' << dl1 << " seconds." << std::endl;
+      std::cout << "Delay to compute stats " << dl2 << " seconds." << std::endl;
+      std::cout << "Total mem " << getTotalSystemMemory() << std::endl;
+    }
   }
 
   return 0;

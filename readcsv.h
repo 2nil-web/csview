@@ -49,7 +49,11 @@ namespace csv {
     std::uintmax_t curr_pos=0;
     row curr_row;
     cell curr_cell;
-    bool currently_escaped=false, currently_delimited=false;
+    bool currently_escaped=false, currently_delimited=false, loaded_in_mem;
+    std::string in_mem="";
+
+    void parse(char c);
+    void end_parse();
     
     public:
     file ()  { };
@@ -65,11 +69,12 @@ namespace csv {
       size_t _max_cell_size=256
     );
 
-    void parse(char c);
-    void end_parse();
     bool read_from_file(std::string &);
     bool read_in_memory(std::string &);
     void stat(bool line_by_line=true);
+    void list(std::uintmax_t r1, std::uintmax_t r2);
+    void list(std::uintmax_t r);
+    void list();
   };
 }
 

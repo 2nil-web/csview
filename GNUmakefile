@@ -7,6 +7,12 @@ ifneq (${OS},Linux)
 
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 
+ifeq (${MSYSTEM},MSYS)
+ARCH_PATH=/usr/bin
+CPPFLAGS += -D_UNICODE -DUNICODE
+LDFLAGS  += -static
+endif
+
 ifeq (${MSYSTEM},MINGW64)
 ARCH_PATH=/mingw64/bin
 CPPFLAGS += -D_UNICODE -DUNICODE
@@ -105,7 +111,7 @@ ${SINGLE_OBJS}: %.o: %.cpp
 	$(CXX) -D_UNICODE -DUNICODE -Wall -Wextra -std=c++20 -pedantic -c $< -o $@
 
 ${SINGLE_EXES}: %${EXEXT}: %.o
-	$(CXX) $^ -o $@
+	$(CXX) $^ -static -o $@
 
 emoji_map.h :
 	./gen_emojis.sh
