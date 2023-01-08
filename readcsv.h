@@ -19,6 +19,7 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#include <limits.h>
 #endif
 
 namespace csv {
