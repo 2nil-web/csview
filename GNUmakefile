@@ -1,10 +1,12 @@
 
 OS=$(shell uname -s)
 
+CPPFLAGS += -D_UNICODE -DUNICODE
+CFLAGS += -Wall -Wextra -std=c18 -pedantic
+CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
-
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 
 ifeq (${MSYSTEM},MSYS)
@@ -43,19 +45,8 @@ PATH:=${PATH}:${PGF}/Inkscape/bin
 
 PATH:=${ARCH_PATH}:${PATH}
 
-CC:=${ARCH_PATH}/${CC}
-CXX:=${ARCH_PATH}/${CXX}
-GCC:=${CC}
-GXX:=${CXX}
 RC=${ARCH_PATH}/windres
-LD=${ARCH_PATH}/ld
-STRIP=${ARCH_PATH}/strip
-GDB=${ARCH_PATH}/gdb
-UPX=upx
 
-CPPFLAGS += -D_UNICODE -DUNICODE
-CFLAGS += -Wall -Wextra -std=c18 -pedantic
-CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 LDFLAGS += -mwindows
 LDFLAGS += -static -g -Os
 LDLIBS   += -lurlmon -lwsock32 -lws2_32 -lole32 -luuid -lcomctl32 -loleaut32 -lgdi32
@@ -83,7 +74,9 @@ ECHO=echo -e
 TARGETS+=${WINTAIL_PREFIX}${EXEXT} ${SINGLE_EXES}
 
 else
-
+#ARCH_PATH=/usr/local/gcc12/bin
+ARCH_PATH=/usr/bin
+PATH:=${ARCH_PATH}:${PATH}
 MAGICK=
 UPX=upx
 RC=
@@ -93,6 +86,16 @@ ECHO=echo
 STRIP=strip
 GDB=gdb
 endif
+
+CC:=${ARCH_PATH}/${CC}
+CXX:=${ARCH_PATH}/${CXX}
+GCC:=${CC}
+GXX:=${CXX}
+LD=${ARCH_PATH}/ld
+STRIP=${ARCH_PATH}/strip
+GDB=${ARCH_PATH}/gdb
+UPX=upx
+
 
 #LD=$(CXX)
 LINE_COUNT=line_count
@@ -132,11 +135,14 @@ cfg :
 	@echo "PATH"
 	@echo "${PATH}" | sed 's/:/\n/g'
 	@echo "END PATH"
-	@type strip upx convert inkscape iscc
+ifneq (${OS},Linux)
+	@type windres iscc
+endif
+	@type strip upx convert inkscape
 ifeq (${MSYSTEM},CLANG64)
 	@type clang clang++
 endif
-	@type cc c++ gcc g++ ld windres gdb convert inkscape iscc
+	@type cc c++ gcc g++ ld gdb
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}"
 	@${ECHO} "Single exes=${SINGLE_EXES}"
