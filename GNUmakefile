@@ -7,7 +7,7 @@ CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
-MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+#MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 
 ifeq (${MSYSTEM},MSYS)
 ARCH_PATH=/usr/bin
@@ -52,8 +52,8 @@ LDFLAGS += -static -g -Os
 LDLIBS   += -lurlmon -lwsock32 -lws2_32 -lole32 -luuid -lcomctl32 -loleaut32 -lgdi32
 
 WINTAIL_PREFIX=wintail
-WINTAIL_PREFIX_SRCS=${WINTAIL_PREFIX}.cpp reghandle.cpp util.cpp
-WINTAIL_PREFIX_OBJS=$(WINTAIL_PREFIX_SRCS:.cpp=.o)
+WINTAIL_SRCS=${WINTAIL_PREFIX}.cpp reghandle.cpp util.cpp
+WINTAIL_OBJS=$(WINTAIL_SRCS:.cpp=.o)
 
 MAGICK=/mingw64/bin/magick
 RC=windres
@@ -61,7 +61,7 @@ RC=windres
 
 EXEXT=.exe
 ifeq ($(MSBUILD),)
-OBJS += ${WINTAIL_PREFIX}_res.o
+WINTAIL_OBJS += ${WINTAIL_PREFIX}_res.o
 endif
 
 ECHO=echo -e
@@ -84,11 +84,14 @@ endif
 
 SRCS=$(wildcard *.cpp)
 OBJS=$(SRCS:.cpp=.o)
-SINGLE_SRCS=$(filter-out ${WINTAIL_PREFIX_SRCS} ${WIN_ONLY_SRCS},${SRCS})
+SINGLE_SRCS=$(filter-out ${WINTAIL_SRCS} ${WIN_ONLY_SRCS},${SRCS})
 SINGLE_OBJS=$(SINGLE_SRCS:.cpp=.o)
 SINGLE_EXES=$(SINGLE_OBJS:.o=${EXEXT})
-TARGETS+=${SINGLE_EXES} mkt${EXEXT}
+TARGETS+=${SINGLE_EXES}
 
+ifneq (${MSYSTEM},CLANG64)
+TARGETS+=mkt${EXEXT}
+endif
 
 CC:=${ARCH_PATH}/${CC}
 CXX:=${ARCH_PATH}/${CXX}
@@ -99,9 +102,7 @@ STRIP=${ARCH_PATH}/strip
 GDB=${ARCH_PATH}/gdb
 UPX=upx
 
-
 #LD=$(CXX)
-LINE_COUNT=line_count
 
 ifneq (${OS},Linux)
 all : ${WINTAIL_PREFIX}.ico ${TARGETS}
@@ -110,9 +111,10 @@ all : ${TARGETS}
 endif
 
 ifeq ($(MSBUILD),)
-${WINTAIL_PREFIX}${EXEXT} :  ${OBJS}
+${WINTAIL_PREFIX}${EXEXT} :  ${WINTAIL_OBJS}
+	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) $< -o $@
 else
-${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_PREFIX_SRCS}
+${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
 	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .	
 endif
@@ -143,7 +145,7 @@ cfg :
 	@echo "${PATH}" | sed 's/:/\n/g'
 	@echo "END PATH"
 ifneq (${OS},Linux)
-	@type windres iscc
+	@type windres # iscc
 endif
 	@type strip upx convert inkscape
 ifeq (${MSYSTEM},CLANG64)
@@ -152,6 +154,7 @@ endif
 	@type cc c++ gcc g++ ld gdb
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}\nCXXFLAGS=${CXXFLAGS}\nLDFLAGS=${LDFLAGS}\nLDLIBS=${LDLIBS}"
 	@${ECHO} "SRCS=${SRCS}\nOBJS=${OBJS}\nTARGETS=${TARGETS}\nSINGLE_EXES=${SINGLE_EXES}"
+	@${ECHO} "WINTAIL_SRCS=${WINTAIL_SRCS}\nWINTAIL_OBJS=${WINTAIL_OBJS}"
 
 clean :
 	rm -f *~ *.o $(OBJS) ${WINTAIL_PREFIX}.ico

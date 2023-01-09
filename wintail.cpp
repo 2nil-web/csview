@@ -377,7 +377,7 @@ unsigned int readCsv(std::wstring fname, HWND hwnd, wchar_t sep=0, wchar_t delim
 
   unsigned int count=0;
   bool first_row=true;
-  std::wifstream fp(fname);
+  std::wifstream fp(fname.c_str());
 
   if (fp.is_open()) {
     std::wstring ln, cell;
