@@ -70,7 +70,7 @@ void csv::file::setfmt(bool _is_csv,
   max_cell_size=_max_cell_size;
 }
 
-void csv::file::parse(char c) {
+void csv::file::parse_file(char c) {
   if (is_csv) {
     // Ignore current character meaning as it is escaped
     if (currently_escaped) {
@@ -125,7 +125,7 @@ void csv::file::parse(char c) {
 }
 
 
-void csv::file::end_parse() {
+void csv::file::end_parse_file() {
   if (curr_cell.start < curr_pos && curr_row.cells.size () > 0) {
     curr_cell.end=curr_row.end=curr_pos;
     curr_row.cells.push_back(curr_cell);
@@ -154,8 +154,8 @@ bool csv::file::read_in_memory(std::string &file_path) {
   loaded_in_mem=true;
 
   if (swallow_file(file_path, in_mem)) {
-    for(auto c:in_mem) parse(c);
-    end_parse();
+    for(auto c:in_mem) parse_file(c);
+    end_parse_file();
     return true;
   }
 
@@ -173,10 +173,10 @@ bool csv::file::read_from_file(std::string &file_path) {
 
     while(in.good()) {
       in.get(c);
-      parse(c);
+      parse_file(c);
     }
 
-    end_parse();
+    end_parse_file();
   }
 
   if (!in.eof() && in.fail()) {
@@ -309,7 +309,7 @@ std::string trim(std::string& s) {
 
 // Cherche une ou plusieurs sous-chaine de la forme "r1-r2 r3-r4 ..." qui définisse des plages numérique et les range par paires dans le vector
 // Le vector résultant doit donc avoir une taille paire
-bool csv::file::parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
+bool csv::file::parse_row_range(std::string s, std::vector<std::uintmax_t>& parm) {
   parm.clear();
   trim(s);
   std::string sn="";
@@ -331,7 +331,51 @@ bool csv::file::parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
   return true;
 }
 
-bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
+bool csv::file::parse_row_list(std::string s, std::vector<std::uintmax_t>& parm) {
+  parm.clear();
+  trim(s);
+  std::string sn="";
+
+  for(auto c:s) {
+    if (std::isdigit(c)) sn+=c;
+    else if (isspace(c)) {
+      parm.push_back(stoi(sn));
+      sn="";
+    } else return false;
+  }
+
+  if (sn != "") parm.push_back(stoi(sn));
+/*
+  for (auto p:parm) std::cout << p << ',';
+  std::cout << std::endl;
+  std::cout << "from lst" << std::endl;*/
+  return true;
+}
+// Cherche une ou plusieurs sous-chaine de la forme "r1-r2 r3-r4 ..." qui définisse des plages numérique et les range par paires dans le vector
+// Le vector résultant doit donc avoir une taille paire
+bool csv::file::parse_cell_range(std::string s, std::vector<std::uintmax_t>& parm) {
+  parm.clear();
+  trim(s);
+  std::string sn="";
+
+  for(auto c:s) {
+    if (std::isdigit(c)) sn+=c;
+    else if (c == '-' || (isspace(c) && parm.size() % 2)) {
+      parm.push_back(stoi(sn));
+      sn="";
+    } else return false;
+  }
+
+  if (sn != "") parm.push_back(stoi(sn));
+  // Si il n'y a pas de dernier chiffre alors on en déduit qu'il faut aller jusqu'au bout
+  if (s.back() == '-') parm.push_back(rows.size());
+  if (parm.size() % 2) return false;
+
+  //std::cout << "from rng" << std::endl;
+  return true;
+}
+
+bool csv::file::parse_cell_list(std::string s, std::vector<std::uintmax_t>& parm) {
   parm.clear();
   trim(s);
   std::string sn="";
@@ -359,9 +403,23 @@ void row(std::string ln, csv::file& cf) {
   if (ln == "") cf.list();
   else {
     std::vector<std::uintmax_t> parm;
-    if (cf.parse_range(ln, parm)) {
+    if (cf.parse_row_range(ln, parm)) {
       for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-    } else if (cf.parse_list(ln, parm)) {
+    } else if (cf.parse_row_list(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
+    }
+  }
+}
+
+void cell(std::string ln, csv::file& cf) {
+  ln.erase(ln.begin(), ln.begin()+3);
+  trim(ln);
+  if (ln == "") cf.list();
+  else {
+    std::vector<std::uintmax_t> parm;
+    if (cf.parse_cell_range(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
+    } else if (cf.parse_cell_list(ln, parm)) {
       for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
     }
   }
@@ -429,6 +487,7 @@ int main(int argc, char *argv[]) {
         else if (ln == "q" || ln == "x" || ln == "exit" || ln == "quit") break;
         else if (ln == "stat") cf.stat(false);
         else if (ln.starts_with("row")) row(ln, cf);
+        else if (ln.starts_with("cell")) cell(ln, cf);
         else if (ln != "") std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
         std::cout << prompt << std::flush;

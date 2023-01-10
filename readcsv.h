@@ -52,8 +52,8 @@ namespace csv {
     bool currently_escaped=false, currently_delimited=false, loaded_in_mem;
     std::string in_mem="";
 
-    void parse(char c);
-    void end_parse();
+    void parse_file(char c);
+    void end_parse_file();
     
     public:
     file ()  { };
@@ -75,8 +75,10 @@ namespace csv {
     void list(std::uintmax_t r1, std::uintmax_t r2);
     void list(std::uintmax_t r);
     void list();
-    bool parse_range(std::string, std::vector<std::uintmax_t>&);
-    bool parse_list(std::string, std::vector<std::uintmax_t>&);
+    bool parse_row_range(std::string, std::vector<std::uintmax_t>&);
+    bool parse_row_list(std::string, std::vector<std::uintmax_t>&);
+    bool parse_cell_range(std::string, std::vector<std::uintmax_t>&);
+    bool parse_cell_list(std::string, std::vector<std::uintmax_t>&);
   };
 }
 
