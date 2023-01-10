@@ -424,17 +424,12 @@ int main(int argc, char *argv[]) {
       std::cout << prompt << std::flush;
       while (std::getline(std::cin, ln)) {
         trim(ln);
-        if (ln == "help") help();
-        else
-        if (ln == "q" || ln == "x" || ln == "exit" || ln == "quit") break;
-        else
-        if (ln == "stat") cf.stat(false);
-        else
-        if (ln.starts_with("row")) row(ln, cf);
-        else if (ln != "") {
-          std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
-        }
+        if (ln == "help") help();
+        else if (ln == "q" || ln == "x" || ln == "exit" || ln == "quit") break;
+        else if (ln == "stat") cf.stat(false);
+        else if (ln.starts_with("row")) row(ln, cf);
+        else if (ln != "") std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
         std::cout << prompt << std::flush;
       }
