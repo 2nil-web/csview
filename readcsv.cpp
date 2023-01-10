@@ -29,7 +29,7 @@ void csv::file::list(std::uintmax_t r1, std::uintmax_t r2) {
     r2=rows.size();
   }
 
-  for(auto i=r1; i < r2; i++) {
+  for(auto i=r1; i <= r2; i++) {
     if (loaded_in_mem) {
       std::cout << i << ": " << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
     } else {
@@ -352,6 +352,21 @@ bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
   return true;
 }
 
+
+void row(std::string ln, csv::file& cf) {
+  ln.erase(ln.begin(), ln.begin()+3);
+  trim(ln);
+  if (ln == "") cf.list();
+  else {
+    std::vector<std::uintmax_t> parm;
+    if (cf.parse_range(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
+    } else if (cf.parse_list(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   args=std::vector<std::string>(argv, argv + argc);
   prog_basename=std::filesystem::path(args[0]).stem().string();
@@ -415,19 +430,8 @@ int main(int argc, char *argv[]) {
         else
         if (ln == "stat") cf.stat(false);
         else
-        if (ln.starts_with("row")) {
-          ln.erase(ln.begin(), ln.begin()+3);
-          trim(ln);
-          if (ln == "") cf.list();
-          else {
-            std::vector<std::uintmax_t> parm;
-            if (cf.parse_range(ln, parm)) {
-              for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-            } else if (cf.parse_list(ln, parm)) {
-              for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
-            }
-          }
-        } else if (ln != "") {
+        if (ln.starts_with("row")) row(ln, cf);
+        else if (ln != "") {
           std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
         }
