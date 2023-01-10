@@ -7,7 +7,9 @@ CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
 
 # If not linux then assume that it is windows
 ifneq (${OS},Linux)
-#MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+ifeq (${HOSTNAME},PC-Denis)
+MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+endif
 
 ifeq (${MSYSTEM},MSYS)
 ARCH_PATH=/usr/bin
