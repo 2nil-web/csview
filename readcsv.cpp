@@ -29,15 +29,15 @@ void csv::file::list(std::uintmax_t r1, std::uintmax_t r2) {
     r2=rows.size();
   }
 
-  for(auto i=r1; i < r2; i++) {
+  for(auto i=r1; i <= r2; i++) {
     if (loaded_in_mem) {
-      std::cout << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
+      std::cout << i << ": " << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
     } else {
     }
   }
 }
 
-void csv::file::list(std::uintmax_t r) { list(r, r); }
+void csv::file::list(std::uintmax_t r) { list(r, r+1); }
 
 void csv::file::list() {
   if (rows.size() > 1000) {
@@ -47,10 +47,11 @@ void csv::file::list() {
     if (rep != "y") return;
   }
 
+  uintmax_t i=0;
   for(auto row:rows) {
     //std::cout << row.start << ',' << row.end << std::endl;
     if (loaded_in_mem) {
-      std::cout << in_mem.substr(row.start, row.end-row.start) << std::endl;
+      std::cout << i++ << ": " << in_mem.substr(row.start, row.end-row.start) << std::endl;
     } else {
     }
   }
@@ -287,8 +288,7 @@ In interactive mode they are off by default. In non-interactive mode they are on
 
 
 void help() {
-  std::cout << R"EOF(
-Available commands are :
+  std::cout << R"EOF(Available commands are :
 help: display this message
 stat: display various statistics on the current file
 row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
@@ -299,7 +299,6 @@ ls: list all the currently loaded file.
 set n: set the file numbered n as the current file.
 exit: leave interactive mode.
 )EOF";
-
 }
 
 std::string trim(std::string& s) {
@@ -311,12 +310,13 @@ std::string trim(std::string& s) {
 // Cherche une ou plusieurs sous-chaine de la forme "r1-r2 r3-r4 ..." qui définisse des plages numérique et les range par paires dans le vector
 // Le vector résultant doit donc avoir une taille paire
 bool csv::file::parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
+  parm.clear();
   trim(s);
   std::string sn="";
 
   for(auto c:s) {
     if (std::isdigit(c)) sn+=c;
-    else if (c == '-' || isspace(c)) {
+    else if (c == '-' || (isspace(c) && parm.size() % 2)) {
       parm.push_back(stoi(sn));
       sn="";
     } else return false;
@@ -326,11 +326,45 @@ bool csv::file::parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
   // Si il n'y a pas de dernier chiffre alors on en déduit qu'il faut aller jusqu'au bout
   if (s.back() == '-') parm.push_back(rows.size());
   if (parm.size() % 2) return false;
+
+  //std::cout << "from rng" << std::endl;
   return true;
 }
 
 bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
-  return false;
+  parm.clear();
+  trim(s);
+  std::string sn="";
+
+  for(auto c:s) {
+    if (std::isdigit(c)) sn+=c;
+    else if (isspace(c)) {
+      parm.push_back(stoi(sn));
+      sn="";
+    } else return false;
+  }
+
+  if (sn != "") parm.push_back(stoi(sn));
+/*
+  for (auto p:parm) std::cout << p << ',';
+  std::cout << std::endl;
+  std::cout << "from lst" << std::endl;*/
+  return true;
+}
+
+
+void row(std::string ln, csv::file& cf) {
+  ln.erase(ln.begin(), ln.begin()+3);
+  trim(ln);
+  if (ln == "") cf.list();
+  else {
+    std::vector<std::uintmax_t> parm;
+    if (cf.parse_range(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
+    } else if (cf.parse_list(ln, parm)) {
+      for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -392,23 +426,12 @@ int main(int argc, char *argv[]) {
         trim(ln);
         if (ln == "help") help();
         else
-        if (ln == "exit" || ln == "quit") break;
+        if (ln == "q" || ln == "x" || ln == "exit" || ln == "quit") break;
         else
         if (ln == "stat") cf.stat(false);
         else
-        if (ln.starts_with("row")) {
-          ln.erase(ln.begin(), ln.begin()+3);
-          trim(ln);
-          if (ln == "") cf.list();
-          else {
-            std::vector<std::uintmax_t> parm;
-            if (cf.parse_range(ln, parm)) {
-              for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-            } else if (cf.parse_list(ln, parm)) {
-              for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
-            }
-          }
-        } else {
+        if (ln.starts_with("row")) row(ln, cf);
+        else if (ln != "") {
           std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
         }
