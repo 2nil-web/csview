@@ -50,13 +50,14 @@ namespace csv {
     row curr_row;
     cell curr_cell;
     bool currently_escaped=false, currently_delimited=false, loaded_in_mem;
+    std::string filename;
     std::string in_mem="";
 
     void parse_file(char c);
     void end_parse_file();
     
     public:
-    file ()  { };
+    file (std::string _filename="")  { filename=_filename; };
     ~file ()  { };
     void setfmt(
       bool _is_csv=true,
@@ -69,9 +70,12 @@ namespace csv {
       size_t _max_cell_size=256
     );
 
-    bool read_from_file(std::string &);
-    bool read_in_memory(std::string &);
+    bool read_from_file();
+    bool read_in_memory();
+    void reset();
+    bool load(std::string _filename, bool in_memory=true);
     void stat(bool line_by_line=true);
+    std::string read_substring_from_file(std::uintmax_t start_read=0, std::uintmax_t length_read=0);
     void list(std::uintmax_t r1, std::uintmax_t r2);
     void list(std::uintmax_t r);
     void list();

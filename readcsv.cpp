@@ -18,27 +18,78 @@ double getTotalSystemMemory() {
     return (double)mem_in_byte/1048576;
 }
 
-void csv::file::list(std::uintmax_t r1, std::uintmax_t r2) {
-  if (r1 > rows.size()) {
-    std::cout << "row start value (" << r1 << ") is beyond last row value (" << rows.size() << ")." << std::endl;
-    return;
+std::string trim(std::string& s) {
+  s.erase(0, s.find_first_not_of(" \n\r\t"));
+  s.erase(s.find_last_not_of(" \n\r\t")+1);
+  return s;
+}
+
+std::string csv::file::read_substring_from_file(std::uintmax_t start_read, std::uintmax_t length_read) {
+  std::uintmax_t file_length=std::filesystem::file_size(std::filesystem::path{filename});
+
+  if (start_read > file_length) {
+    std::cerr << "Trying to read starting from character " << start_read << ", which is beyond file length of " << file_length << " characters" << std::endl;
   }
 
+  std::ifstream in(filename);
+  std::string s="";
+
+  if (in.is_open()) {
+    if (start_read > 0) in.seekg(start_read);
+
+    std::uintmax_t l=0;
+    char c;
+    while(in.good()) {
+      in.get(c);
+      s+=c;
+      if (length_read > 0 && l > length_read) break;
+      l++;
+    }
+   
+    std::cout << std::endl;
+    in.close();
+  } else {
+    std::cerr << "Could not open " << filename << std::endl;
+    return s;
+  }
+
+  return s;
+}
+
+// List range of rows
+// Rows are passed from 1 to size but converted to 0 to size-1
+void csv::file::list(std::uintmax_t r1, std::uintmax_t r2) {
+  if (r1 < 1) {
+    std::cout << "row start value (" << r1 << ") is below 1, starting from 1." << std::endl;
+  }
+
+  if (r1 > rows.size()) {
+    std::cout << "row start value (" << r1 << ") is beyond last row index (" << rows.size()-1 << "), starting from last row index." << std::endl;
+    r1=rows.size();
+  }
+
+  r1--;
+
   if (r2 > rows.size()) {
-    std::cout << "row end value (" << r2 << ") is beyond last row value (" << rows.size() << "), will stop on last row." << std::endl;
+    std::cout << "row end value (" << r2 << ") is beyond last row index (" << rows.size()-1 << "), will stop on last index." << std::endl;
     r2=rows.size();
   }
 
+  r2--;
+
   for(auto i=r1; i <= r2; i++) {
     if (loaded_in_mem) {
-      std::cout << i << ": " << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
+      std::cout << i+1 << ": " << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
     } else {
+      std::cout << i+1 << ": " << read_substring_from_file(rows[i].start, rows[i].end-rows[i].start) << std::endl;
     }
   }
 }
 
-void csv::file::list(std::uintmax_t r) { list(r, r+1); }
+// List only one row
+void csv::file::list(std::uintmax_t r) { list(r, r); }
 
+// List the whole file
 void csv::file::list() {
   if (rows.size() > 1000) {
     std::string rep;
@@ -47,14 +98,7 @@ void csv::file::list() {
     if (rep != "y") return;
   }
 
-  uintmax_t i=0;
-  for(auto row:rows) {
-    //std::cout << row.start << ',' << row.end << std::endl;
-    if (loaded_in_mem) {
-      std::cout << i++ << ": " << in_mem.substr(row.start, row.end-row.start) << std::endl;
-    } else {
-    }
-  }
+  list(1, rows.size());
 }
 
 void csv::file::setfmt(bool _is_csv,
@@ -150,10 +194,10 @@ bool swallow_file(std::string &file_path, std::string &s) {
 }
 
 // Put whole file in memory then process
-bool csv::file::read_in_memory(std::string &file_path) {
+bool csv::file::read_in_memory() {
   loaded_in_mem=true;
 
-  if (swallow_file(file_path, in_mem)) {
+  if (swallow_file(filename, in_mem)) {
     for(auto c:in_mem) parse_file(c);
     end_parse_file();
     return true;
@@ -163,10 +207,10 @@ bool csv::file::read_in_memory(std::string &file_path) {
 }
 
 // Process while reading char by char
-bool csv::file::read_from_file(std::string &file_path) {
+bool csv::file::read_from_file() {
   loaded_in_mem=false;
 
-  std::ifstream in(file_path);
+  std::ifstream in(filename);
 
   if (in.is_open()) {
     //std::uintmax_t file_length=std::filesystem::file_size(std::filesystem::path{fname});
@@ -180,12 +224,35 @@ bool csv::file::read_from_file(std::string &file_path) {
   }
 
   if (!in.eof() && in.fail()) {
-    std::cout << "error reading " << file_path << std::endl;
+    std::cout << "error reading " << filename << std::endl;
     return false;
   }
 
   in.close();
   return true;
+}
+
+void csv::file::reset() {
+  curr_pos=0;
+  curr_row.reset();
+  curr_cell.reset();
+  rows.clear();
+  in_mem.clear();
+  filename="";
+}
+
+bool csv::file::load(std::string _filename, bool in_memory) {
+  reset();
+  filename=trim(_filename);
+
+  bool ret;
+  if (in_memory) ret=read_in_memory();
+  else ret=read_from_file();
+
+  if (ret) std::cout << _filename << " loaded." << std::endl;
+  else std::cout << "Problem loading file " << _filename << "." << std::endl;
+
+  return ret;
 }
 
 void csv::file::stat(bool line_by_line) {
@@ -301,12 +368,6 @@ exit: leave interactive mode.
 )EOF";
 }
 
-std::string trim(std::string& s) {
-  s.erase(0, s.find_first_not_of(" \n\r\t"));
-  s.erase(s.find_last_not_of(" \n\r\t")+1);
-  return s;
-}
-
 // Cherche une ou plusieurs sous-chaine de la forme "r1-r2 r3-r4 ..." qui définisse des plages numérique et les range par paires dans le vector
 // Le vector résultant doit donc avoir une taille paire
 bool csv::file::parse_row_range(std::string s, std::vector<std::uintmax_t>& parm) {
@@ -389,10 +450,7 @@ bool csv::file::parse_cell_list(std::string s, std::vector<std::uintmax_t>& parm
   }
 
   if (sn != "") parm.push_back(stoi(sn));
-/*
-  for (auto p:parm) std::cout << p << ',';
-  std::cout << std::endl;
-  std::cout << "from lst" << std::endl;*/
+
   return true;
 }
 
@@ -458,21 +516,21 @@ int main(int argc, char *argv[]) {
     line_by_line=string_to_bool(args[2]);
   }
 
-  bool read_in_memory=true;
+  bool in_memory=true;
   if (args.size() > 3) {
-    read_in_memory=string_to_bool(args[3]);
+    in_memory=string_to_bool(args[3]);
   }
 
   if (args.size() > 0) {
-    csv::file cf;
+    csv::file cf(args[0]);
     cf.setfmt(is_csv);
 
     delay();
-    if (read_in_memory) {
-      cf.read_in_memory(args[0]);
-      std::cout << "File " << args[0] << " loaded in memory." << std::endl;
+    if (in_memory) {
+      cf.read_in_memory();
+      std::cout << "File " << args[0] << " loaded in memory and parsed." << std::endl;
     } else {
-      cf.read_from_file(args[0]);
+      cf.read_from_file();
       std::cout << "File " << args[0] << " parsed." << std::endl;
     }
     double dl1=delay(false);
@@ -488,6 +546,7 @@ int main(int argc, char *argv[]) {
         else if (ln == "stat") cf.stat(false);
         else if (ln.starts_with("row")) row(ln, cf);
         else if (ln.starts_with("cell")) cell(ln, cf);
+        else if (ln.starts_with("load")) cf.load(&ln[4], in_memory);
         else if (ln != "") std::cerr << "Uknown command ["<< ln << ']' << std::endl;
 
         std::cout << prompt << std::flush;
