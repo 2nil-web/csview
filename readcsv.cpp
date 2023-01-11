@@ -455,33 +455,49 @@ bool csv::file::parse_cell_list(std::string s, std::vector<std::uintmax_t>& parm
 }
 
 
-void row(std::string ln, csv::file& cf) {
-  ln.erase(ln.begin(), ln.begin()+3);
-  trim(ln);
-  if (ln == "") cf.list();
+csv::file cf;
+std::string cmd_parm="";
+
+void row() {
+  if (cmd_parm == "") cf.list();
   else {
     std::vector<std::uintmax_t> parm;
-    if (cf.parse_row_range(ln, parm)) {
+    if (cf.parse_row_range(cmd_parm, parm)) {
       for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-    } else if (cf.parse_row_list(ln, parm)) {
+    } else if (cf.parse_row_list(cmd_parm, parm)) {
       for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
     }
   }
 }
 
-void cell(std::string ln, csv::file& cf) {
-  ln.erase(ln.begin(), ln.begin()+3);
-  trim(ln);
-  if (ln == "") cf.list();
+void cell() {
+  if (cmd_parm == "") cf.list();
   else {
     std::vector<std::uintmax_t> parm;
-    if (cf.parse_cell_range(ln, parm)) {
+    if (cf.parse_cell_range(cmd_parm, parm)) {
       for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-    } else if (cf.parse_cell_list(ln, parm)) {
+    } else if (cf.parse_cell_list(cmd_parm, parm)) {
       for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
     }
   }
 }
+
+void quit () {
+  exit(0);
+}
+
+std::map<std::string, std::function<void()>> cmd_funcs = {
+  { "help", help },
+  { "stat", []() { cf.stat(string_to_bool(cmd_parm)); } },
+  { "row", row },
+  { "cell", cell },
+  { "load", []() { cf.load(cmd_parm); } },
+  { "quit", quit },
+  { "q", quit },
+  { "x", quit },
+  { "exit", quit }
+};
+
 
 int main(int argc, char *argv[]) {
   args=std::vector<std::string>(argv, argv + argc);
@@ -522,7 +538,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (args.size() > 0) {
-    csv::file cf(args[0]);
+    cf.load(args[0]);
     cf.setfmt(is_csv);
 
     delay();
@@ -538,17 +554,21 @@ int main(int argc, char *argv[]) {
     if (interactive) {
       std::string ln, prompt="> ";
       std::cout << prompt << std::flush;
+      std::string cmd;
+      std::string::size_type pos;
       while (std::getline(std::cin, ln)) {
         trim(ln);
-
-        if (ln == "help") help();
-        else if (ln == "q" || ln == "x" || ln == "exit" || ln == "quit") break;
-        else if (ln == "stat") cf.stat(false);
-        else if (ln.starts_with("row")) row(ln, cf);
-        else if (ln.starts_with("cell")) cell(ln, cf);
-        else if (ln.starts_with("load")) cf.load(&ln[4], in_memory);
-        else if (ln != "") std::cerr << "Uknown command ["<< ln << ']' << std::endl;
-
+        pos=ln.find_first_of(' ');
+        if (pos == std::string::npos) {
+          cmd=ln;
+          cmd_parm="";
+        } else {
+          cmd=ln.substr(0, pos);
+          cmd_parm=ln.substr(pos);
+          trim(cmd_parm);
+        }
+        if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
+        else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
         std::cout << prompt << std::flush;
       }
     } else {

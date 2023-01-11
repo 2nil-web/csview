@@ -14,6 +14,9 @@
 #include <cstdio>
 #include <cerrno>
 #include <tuple>
+#include <map>
+#include <functional>
+#include <utility>
 
 #ifdef __WIN32__
 #include <windows.h>
