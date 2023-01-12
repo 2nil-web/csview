@@ -249,8 +249,12 @@ bool csv::file::load(std::string _filename, bool in_memory) {
   if (in_memory) ret=read_in_memory();
   else ret=read_from_file();
 
-  if (ret) std::cout << _filename << " loaded." << std::endl;
-  else std::cout << "Problem loading file " << _filename << "." << std::endl;
+  if (ret) {
+    if (loaded_in_mem)
+      std::cout << "File " << filename << " loaded in memory and parsed." << std::endl;
+    else
+      std::cout << "File " << filename << " parsed." << std::endl;
+  } else std::cout << "Problem loading file " << _filename << "." << std::endl;
 
   return ret;
 }
@@ -343,12 +347,11 @@ void usage(std::string progpath, std::ostream& out = std::cout) {
 Optionnal parameters :        
   -h : display this help.
   -i : batch (non interactive) mode is the default, this paraemter give access to the interactive mode. Once done, type the "help" command for more information.
-At least the name of the file to browse must be provided.
+Foolowing, at least the name of the file to browse must be provided.
 Then 3 other optional arguments might be provided in boolean form (1/0, on/off, true/false):
-  Read as cvs (-on) or read as a text file (off), by default this argument is on.
-  Stats line by line or notff in interactive mode and on in batch mode.
-  Read file in memory or not.
-In interactive mode they are off by default. In non-interactive mode they are on by default.
+  Read as cvs (on) or read as a text file (off), by default this argument is on.
+  Stats line by line or not, by default in interactive mode this is off and in batch mode this is on.
+  Read file in memory or not, by default this is on.
 )EOF";
   //exit(EXIT_SUCCESS);
 }
@@ -486,12 +489,14 @@ void quit () {
   exit(0);
 }
 
+bool in_memory=true;
+
 std::map<std::string, std::function<void()>> cmd_funcs = {
   { "help", help },
   { "stat", []() { cf.stat(string_to_bool(cmd_parm)); } },
   { "row", row },
   { "cell", cell },
-  { "load", []() { cf.load(cmd_parm); } },
+  { "load", []() { cf.load(cmd_parm, in_memory); } },
   { "quit", quit },
   { "q", quit },
   { "x", quit },
@@ -532,23 +537,14 @@ int main(int argc, char *argv[]) {
     line_by_line=string_to_bool(args[2]);
   }
 
-  bool in_memory=true;
   if (args.size() > 3) {
     in_memory=string_to_bool(args[3]);
   }
 
   if (args.size() > 0) {
-    cf.load(args[0]);
     cf.setfmt(is_csv);
-
     delay();
-    if (in_memory) {
-      cf.read_in_memory();
-      std::cout << "File " << args[0] << " loaded in memory and parsed." << std::endl;
-    } else {
-      cf.read_from_file();
-      std::cout << "File " << args[0] << " parsed." << std::endl;
-    }
+    cf.load(args[0], in_memory);
     double dl1=delay(false);
 
     if (interactive) {
