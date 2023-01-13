@@ -14,7 +14,7 @@ EXEXT=.exe
 ECHO=echo -e
 else
 ECHO=echo
-LDLIBS += -lstdc++ -lreadline
+LDLIBS += -lstdc++
 endif
 
 
