@@ -73,6 +73,8 @@ namespace csv {
       size_t _max_cell_size=256
     );
 
+    std::string get_filename() { return filename; };
+
     bool read_from_file();
     bool read_in_memory();
     void reset();

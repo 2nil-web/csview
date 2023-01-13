@@ -1,28 +1,6 @@
 
 #include "readcsv.h"
-
-// Return total memory in mega bytes
-double getTotalSystemMemory() {
-  unsigned long long mem_in_byte;
-#ifdef __WIN32__
-    MEMORYSTATUSEX status;
-    status.dwLength = sizeof(status);
-    GlobalMemoryStatusEx(&status);
-    mem_in_byte=status.ullTotalPhys;
-#else
-    long pages = sysconf(_SC_PHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    mem_in_byte=pages * page_size;
-#endif
-    // Return mem in mega bytes
-    return (double)mem_in_byte/1048576;
-}
-
-std::string trim(std::string& s) {
-  s.erase(0, s.find_first_not_of(" \n\r\t"));
-  s.erase(s.find_last_not_of(" \n\r\t")+1);
-  return s;
-}
+#include "util.h"
 
 std::string csv::file::read_substring_from_file(std::uintmax_t start_read, std::uintmax_t length_read) {
   std::uintmax_t file_length=std::filesystem::file_size(std::filesystem::path{filename});
@@ -178,21 +156,6 @@ void csv::file::end_parse_file() {
   }
 }
 
-bool swallow_file(std::string &file_path, std::string &s) {
-  std::ifstream in(file_path, std::ios::in | std::ios::binary);
-
-  if (in) {
-    in.seekg(0, std::ios::end);
-    s.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&s[0], s.size());
-    in.close();
-    return true;
-  }
-
-  return false;
-}
-
 // Put whole file in memory then process
 bool csv::file::read_in_memory() {
   loaded_in_mem=true;
@@ -261,10 +224,11 @@ bool csv::file::load(std::string _filename, bool in_memory) {
 
 void csv::file::stat(bool line_by_line) {
   std::uintmax_t 
-    min_cells_in_a_row=UINT_MAX, max_cells_in_a_row=0, row_with_min_cells, row_with_max_cells,
+    min_cells_in_a_row=UINT_MAX, max_cells_in_a_row=0,
+    row_with_min_cells=0, row_with_max_cells=0,
     min_char_in_a_cell=UINT_MAX, max_char_in_a_cell=0,
-    cell_with_min_char, row_with_min_char,
-    cell_with_max_char, row_with_max_char;
+    cell_with_min_char=0, row_with_min_char=0,
+    cell_with_max_char=0, row_with_max_char=0;
 
   if (line_by_line) std::cout << "row number;number of cells;row start;row length;cell number;cell start;cell length" << std::endl;
   std::uintmax_t nr=0, nc=0, ncr;
@@ -321,55 +285,7 @@ void csv::file::stat(bool line_by_line) {
   }
 }
 
-double delay(bool start=true) {
-  static std::chrono::high_resolution_clock::time_point begin;
 
-  if (start) {
-    begin=std::chrono::high_resolution_clock::now();
-    return 0.0;
-  } else  {
-    return std::chrono::duration<double>(std::chrono::high_resolution_clock::now()-begin).count();
-  }
-}
-
-std::vector<std::string> args;
-std::string prog_basename;
-
-bool string_to_bool(std::string s) {
-  if (s == "1" || s == "on" || s == "true") return true;
-  return false;
-}
-
-void usage(std::string progpath, std::ostream& out = std::cout) {
-    out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
-    out <<
-        R"EOF(CSV or text file viewer at command line
-Optionnal parameters :        
-  -h : display this help.
-  -i : batch (non interactive) mode is the default, this paraemter give access to the interactive mode. Once done, type the "help" command for more information.
-Foolowing, at least the name of the file to browse must be provided.
-Then 3 other optional arguments might be provided in boolean form (1/0, on/off, true/false):
-  Read as cvs (on) or read as a text file (off), by default this argument is on.
-  Stats line by line or not, by default in interactive mode this is off and in batch mode this is on.
-  Read file in memory or not, by default this is on.
-)EOF";
-  //exit(EXIT_SUCCESS);
-}
-
-
-void help() {
-  std::cout << R"EOF(Available commands are :
-help: display this message
-stat: display various statistics on the current file
-row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
-cell: displays cells of the current file. Parameters are mandatory. They are of the form r1,c1. They might be provided in range form "r1,c1-r2,c2" or in list form "r1,c1 r2,c2 r3,c3 ...".
-reload: reload the current file. This might be useful if the file has been modified.
-load filename: load a new file and set it as the current file.
-ls: list all the currently loaded file.
-set n: set the file numbered n as the current file.
-exit: leave interactive mode.
-)EOF";
-}
 
 // Cherche une ou plusieurs sous-chaine de la forme "r1-r2 r3-r4 ..." qui définisse des plages numérique et les range par paires dans le vector
 // Le vector résultant doit donc avoir une taille paire
@@ -457,126 +373,4 @@ bool csv::file::parse_cell_list(std::string s, std::vector<std::uintmax_t>& parm
   return true;
 }
 
-
-csv::file cf;
-std::string cmd_parm="";
-
-void row() {
-  if (cmd_parm == "") cf.list();
-  else {
-    std::vector<std::uintmax_t> parm;
-    if (cf.parse_row_range(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-    } else if (cf.parse_row_list(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
-    }
-  }
-}
-
-void cell() {
-  if (cmd_parm == "") cf.list();
-  else {
-    std::vector<std::uintmax_t> parm;
-    if (cf.parse_cell_range(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i += 2) cf.list(parm[i], parm[i+1]);
-    } else if (cf.parse_cell_list(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i++) cf.list(parm[i]);
-    }
-  }
-}
-
-void quit () {
-  exit(0);
-}
-
-bool in_memory=true;
-
-std::map<std::string, std::function<void()>> cmd_funcs = {
-  { "help", help },
-  { "stat", []() { cf.stat(string_to_bool(cmd_parm)); } },
-  { "row", row },
-  { "cell", cell },
-  { "load", []() { cf.load(cmd_parm, in_memory); } },
-  { "quit", quit },
-  { "q", quit },
-  { "x", quit },
-  { "exit", quit }
-};
-
-
-int main(int argc, char *argv[]) {
-  args=std::vector<std::string>(argv, argv + argc);
-  prog_basename=std::filesystem::path(args[0]).stem().string();
-  args.erase(args.begin());
-
-  if (args.size() == 0) {
-    usage(prog_basename, std::cerr);
-    return 1;
-  }
-
-  if (args[0] == "-h") {
-    usage(prog_basename);
-    return 0;
-  }
-
-  bool interactive=false;
-
-  if (args[0] == "-i") {
-    interactive=true;
-    args.erase(args.begin());
-  }
-
-  bool is_csv=true;
-  if (args.size() > 1) is_csv=string_to_bool(args[1]);
-
-  bool line_by_line;
-  if (interactive) line_by_line=false;
-  else line_by_line=true;
-
-  if (args.size() > 2) {
-    line_by_line=string_to_bool(args[2]);
-  }
-
-  if (args.size() > 3) {
-    in_memory=string_to_bool(args[3]);
-  }
-
-  if (args.size() > 0) {
-    cf.setfmt(is_csv);
-    delay();
-    cf.load(args[0], in_memory);
-    double dl1=delay(false);
-
-    if (interactive) {
-      std::string ln, prompt="> ";
-      std::cout << prompt << std::flush;
-      std::string cmd;
-      std::string::size_type pos;
-      while (std::getline(std::cin, ln)) {
-        trim(ln);
-        pos=ln.find_first_of(' ');
-        if (pos == std::string::npos) {
-          cmd=ln;
-          cmd_parm="";
-        } else {
-          cmd=ln.substr(0, pos);
-          cmd_parm=ln.substr(pos);
-          trim(cmd_parm);
-        }
-        if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
-        else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
-        std::cout << prompt << std::flush;
-      }
-    } else {
-      delay();
-      cf.stat(line_by_line);
-      double dl2=delay(false);
-      std::cout << "Delay to read file " << args[1] << ' ' << dl1 << " seconds." << std::endl;
-      std::cout << "Delay to compute stats " << dl2 << " seconds." << std::endl;
-      std::cout << "Total mem " << getTotalSystemMemory() << std::endl;
-    }
-  }
-
-  return 0;
-}
 
