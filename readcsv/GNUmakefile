@@ -1,13 +1,16 @@
 
 ifneq ($(shell uname -s),Linux)
-EXEXT=.exe
 ifneq (${MSYSTEM},MSYS)
 PATH:=/$(shell echo $(MSYSTEM) | tr A-Z a-z)/bin:${PATH}
 endif
+
 ifeq (${MSYSTEM},CLANG64)
 CC=clang
 CXX=clang++
 endif
+
+LDFLAGS  += -static
+EXEXT=.exe
 endif
 
 ECHO=echo -e
@@ -15,7 +18,6 @@ ECHO=echo -e
 CPPFLAGS += -D_UNICODE -DUNICODE
 CFLAGS   += -Wall -Wextra -std=c18 -pedantic
 CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic -Os
-LDFLAGS  += -static
 #LDFLAGS  += -g
 LDFLAGS  += -Os -s
 GDB=gdb
