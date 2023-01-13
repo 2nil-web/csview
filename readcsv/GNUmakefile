@@ -1,51 +1,28 @@
 
-OS=$(shell uname -s)
-
-ifneq (${OS},Linux)
-	EXEXT=.exe
-
-ifeq (${MSYSTEM},MSYS)
-	ARCH_PATH=/usr
+ifneq ($(shell uname -s),Linux)
+EXEXT=.exe
+ifneq (${MSYSTEM},MSYS)
+PATH:=/$(shell echo $(MSYSTEM) | tr A-Z a-z)/bin:${PATH}
 endif
-
-ifeq (${MSYSTEM},MINGW64)
-	ARCH_PATH=/mingw64
-endif
-
-ifeq (${MSYSTEM},UCRT64)
-	ARCH_PATH=/ucrt64
-endif
-
 ifeq (${MSYSTEM},CLANG64)
-	ARCH_PATH=/clang64
-	CC=clang
-	CXX=clang++
-else
-	CC=gcc
-	CXX=g++
+CC=clang
+CXX=clang++
 endif
-
-	PATH:=${ARCH_PATH}/bin:${PATH}
 endif
 
 ECHO=echo -e
 
-GCC:=${CC}
-GXX:=${CXX}
-#LD=ld
-#LD=$(CXX)
-
 CPPFLAGS += -D_UNICODE -DUNICODE
 CFLAGS   += -Wall -Wextra -std=c18 -pedantic
-CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic
-LDFLAGS  += -static -g -Os
-
+CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic -Os
+LDFLAGS  += -static
+#LDFLAGS  += -g
+LDFLAGS  += -Os -s
 GDB=gdb
 STRIP=strip
 UPX=upx
 
 SRCS=$(wildcard *.cpp)
-#inter.cpp  main.cpp  readcsv.cpp  util.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=readcsv${EXEXT}
 
@@ -65,7 +42,7 @@ cfg :
 #	@echo "PATH"
 #	@echo "${PATH}" | sed 's/:/\n/g'
 #	@echo "END PATH"
-	@type ${CXX} ${LD} ${GDB} ${STRIP} ${UPX}
+	@type ${CXX} ${CXX} ${LD} ${GDB} ${STRIP} ${UPX}
 	@${ECHO} "CPPFLAGS=${CPPFLAGS}"
 	@${ECHO} "CXXFLAGS=${CXXFLAGS}"
 	@${ECHO} "LDFLAGS=${LDFLAGS}"
@@ -84,7 +61,7 @@ rclean :
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
 ifneq ($(MAKECMDGOALS),rclean)
 %.exe: %.o
-	$(LINK.cpp) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 %.exe: %.cpp
 	$(LINK.cc) $^ $(LOADLIBES) $(LDLIBS) -o $@
