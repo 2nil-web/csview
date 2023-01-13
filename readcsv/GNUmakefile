@@ -11,9 +11,11 @@ endif
 
 LDFLAGS  += -static
 EXEXT=.exe
+ECHO=echo -e
+else
+ECHO=echo
 endif
 
-ECHO=echo -e
 
 CPPFLAGS += -D_UNICODE -DUNICODE
 CFLAGS   += -Wall -Wextra -std=c18 -pedantic
