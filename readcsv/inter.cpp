@@ -1,6 +1,13 @@
 
-#include "util.h"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <functional>
+#include <map>
+
 #include "readcsv.h"
+#include "util.h"
+#include "inter.h"
 
 csv::file cf;
 std::string cmd_parm="";

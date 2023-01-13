@@ -1,7 +1,11 @@
 
+#include <iostream>
+#include <string>
+#include <vector>
+#include <filesystem>
 
-#include "inter.h"
 #include "util.h"
+#include "inter.h"
 
 std::vector<std::string> args;
 std::string prog_basename;
@@ -18,7 +22,6 @@ Then 3 other optional arguments might be provided in boolean form (1/0, on/off, 
   Stats line by line or not, by default in interactive mode this is off and in batch mode this is on.
   Read file in memory or not, by default this is on.
 )EOF";
-  //exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[]) {

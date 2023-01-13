@@ -1,4 +1,8 @@
 
+#include <fstream>
+#include <string>
+#include <chrono>
+
 #include "util.h"
 
 // Return total memory in mega bytes

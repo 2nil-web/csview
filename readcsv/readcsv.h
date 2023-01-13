@@ -2,28 +2,6 @@
 #ifndef READCSV_H
 #define READCSV_H
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <filesystem>
-#include <iterator>
-#include <algorithm>
-#include <chrono>
-#include <cstdio>
-#include <cerrno>
-#include <tuple>
-#include <map>
-#include <functional>
-#include <utility>
-
-#ifdef __WIN32__
-#include <windows.h>
-#else
-#include <unistd.h>
-#include <limits.h>
-#endif
 
 namespace csv {
   class cell {
