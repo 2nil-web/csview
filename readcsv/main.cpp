@@ -1,6 +1,5 @@
 
 
-#include "readcsv.h"
 #include "inter.h"
 #include "util.h"
 
@@ -9,8 +8,7 @@ std::string prog_basename;
 
 void usage(std::string progpath, std::ostream& out = std::cout) {
     out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
-    out <<
-        R"EOF(CSV or text file viewer at command line
+    out << R"EOF(Command line viewer for csv or text file
 Optionnal parameters :        
   -h : display this help.
   -i : batch (non interactive) mode is the default, this paraemter give access to the interactive mode. Once done, type the "help" command for more information.
