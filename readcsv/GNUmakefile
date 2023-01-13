@@ -13,8 +13,8 @@ LDFLAGS  += -static
 EXEXT=.exe
 ECHO=echo -e
 else
-LD=${CXX}
 ECHO=echo
+LDLIBS += -lstdc++
 endif
 
 
