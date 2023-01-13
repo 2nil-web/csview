@@ -13,7 +13,7 @@ LDFLAGS  += -static
 EXEXT=.exe
 ECHO=echo -e
 else
-LD=cxx
+LD=${CXX}
 ECHO=echo
 endif
 
