@@ -7,6 +7,9 @@ endif
 ifeq (${MSYSTEM},CLANG64)
 CC=clang
 CXX=clang++
+CXXFLAGS += -std=c++20
+else
+CXXFLAGS += -std=c++23
 endif
 
 LDFLAGS  += -static
@@ -19,9 +22,9 @@ endif
 LDLIBS += -lstdc++
 
 
-CPPFLAGS += -D_UNICODE -DUNICODE
+#CPPFLAGS += -D_UNICODE -DUNICODE
 CFLAGS   += -Wall -Wextra -std=c18 -pedantic
-CXXFLAGS += -Wall -Wextra -std=c++20 -pedantic -Os
+CXXFLAGS += -Wall -Wextra -pedantic -Os
 #LDFLAGS  += -g
 LDFLAGS  += -Os -s
 GDB=gdb
