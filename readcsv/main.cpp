@@ -7,9 +7,6 @@
 #include "util.h"
 #include "inter.h"
 
-std::vector<std::string> args;
-std::string prog_basename;
-
 void usage(std::string progpath, std::ostream& out = std::cout) {
     out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
     out << R"EOF(Command line viewer for csv or text file
@@ -25,6 +22,9 @@ Then 3 other optional arguments might be provided in boolean form (1/0, on/off, 
 }
 
 int main(int argc, char *argv[]) {
+  std::vector<std::string> args;
+  std::string prog_basename;
+
   args=std::vector<std::string>(argv, argv + argc);
   prog_basename=std::filesystem::path(args[0]).stem().string();
   args.erase(args.begin());
