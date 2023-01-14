@@ -132,8 +132,6 @@ void inter(csv::file _cf, bool _in_memory) {
     else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
     std::cout << prompt << std::flush;
     */
-
-
   }
 }
 
