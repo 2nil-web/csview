@@ -60,9 +60,10 @@ int main(int argc, char *argv[]) {
   }
 
   csv::file cf;
+  cf.is_csv=is_csv;
+//  cf.setfmt(is_csv);
 
   if (args.size() > 0) {
-    cf.setfmt(is_csv);
     delay();
     cf.load(args[0], in_memory);
     double dl1=delay(false);

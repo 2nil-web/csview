@@ -14,8 +14,9 @@ EXEXT=.exe
 ECHO=echo -e
 else
 ECHO=echo
-LDLIBS += -lstdc++
 endif
+
+LDLIBS += -lstdc++
 
 
 CPPFLAGS += -D_UNICODE -DUNICODE
@@ -27,7 +28,8 @@ GDB=gdb
 STRIP=strip
 UPX=upx
 
-SRCS=$(wildcard *.cpp)
+#SRCS=$(wildcard *.cpp)
+SRCS=readcsv.cpp inter.cpp main.cpp util.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=readcsv${EXEXT}
 

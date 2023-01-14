@@ -20,7 +20,7 @@ size_t curr_csv_idx=0;
 void help() {
   std::cout << R"EOF(Available commands are :
 help: display this message
-stat: display various statistics on the current file
+inf: display various informations on the current file
 row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
 cell: displays cells of the current file. Parameters are mandatory. They are of the form r1,c1. They might be provided in range form "r1,c1-r2,c2" or in list form "r1,c1 r2,c2 r3,c3 ...".
 reload: reload the current file. This might be useful if the file has been modified.
@@ -66,11 +66,34 @@ void set() {
     size_t n=std::stoi(cmd_parm);
     if (n > 0 && n <= csvs.size()) {
       curr_csv_idx=n-1;
-      std::cout << curr_csv_idx << ':' << csvs[curr_csv_idx].get_filename() << std::endl;
+      std::cout << n << ':' << csvs[curr_csv_idx].get_filename() << std::endl;
     }
   }
 
 }
+
+std::string get_fmt(std::string name, char value) {
+  name += '=';
+  if (std::isprint(value)) name += "'"+std::string(1, value)+"'";
+  name += " ("+std::to_string((int)value)+")";
+  return name;
+}
+
+void inf() {
+      std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
+      std::cout << 
+        get_fmt("cell_sep", csvs[curr_csv_idx].cell_separator) << ", " <<
+        get_fmt("str_delim", csvs[curr_csv_idx].string_delimiter) << ", " <<
+        get_fmt("eol", csvs[curr_csv_idx].end_of_line) << ", " <<
+        get_fmt("esc", csvs[curr_csv_idx].escape) <<
+      std::endl;
+
+      csvs[curr_csv_idx].stat(string_to_bool(cmd_parm));
+}
+
+void fmt() {
+}
+
 
 void quit () {
   exit(0);
@@ -79,11 +102,7 @@ void quit () {
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
   { "help", help },
-  { "stat", []() {
-      std::cout << csvs[curr_csv_idx].get_filename() << std::endl;;
-      csvs[curr_csv_idx].stat(string_to_bool(cmd_parm));
-    }
-  },
+  { "inf", inf },
   { "row", row },
   { "cell", cell },
   { "load", []() {
@@ -99,6 +118,7 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
     }
   },
   { "set", set },
+  { "fmt", fmt },
   { "!", []() { std::system(cmd_parm.c_str()); } },
   { "quit", quit },
   { "q", quit },
@@ -115,23 +135,33 @@ void inter(csv::file _cf, bool _in_memory) {
   std::string cmd;
   std::string::size_type pos;
 
-  while (std::getline(std::cin, ln)) {
+#ifdef __WIN32
+  SetConsoleOutputCP(CP_UTF8);
+#endif
 
-    /*
+  while (std::getline(std::cin, ln)) {
     trim(ln);
-    pos=ln.find_first_of(' ');
-    if (pos == std::string::npos) {
-      cmd=ln;
-      cmd_parm="";
-    } else {
-      cmd=ln.substr(0, pos);
-      cmd_parm=ln.substr(pos);
+
+    if (ln[0] == '!') {
+      cmd="!";
+      cmd_parm=ln.substr(1);
       trim(cmd_parm);
+    } else {
+      pos=ln.find_first_of(' ');
+
+      if (pos == std::string::npos) {
+        cmd=ln;
+        cmd_parm="";
+      } else {
+        cmd=ln.substr(0, pos);
+        cmd_parm=ln.substr(pos);
+        trim(cmd_parm);
+      }
     }
+
     if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
     else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
     std::cout << prompt << std::flush;
-    */
   }
 }
 

@@ -21,9 +21,6 @@ namespace csv {
 
   class file {
     private:
-    bool is_csv=true;
-    char cell_separator=';', string_delimiter='"', end_of_line='\n', escape='\\';
-    size_t max_line_count=256, min_cell_size=8, max_cell_size=256;
     std::vector<row> rows;
 
     char c;
@@ -39,6 +36,11 @@ namespace csv {
     
     public:
     file (std::string _filename="")  { filename=_filename; };
+
+    bool is_csv=true;
+    char cell_separator=';', string_delimiter='\0', end_of_line='\n', escape='\\';
+    size_t max_line_count=256, min_cell_size=8, max_cell_size=256;
+
     ~file ()  { };
     void setfmt(
       bool _is_csv=true,
