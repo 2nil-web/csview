@@ -8,7 +8,7 @@
 // Return total memory in mega bytes
 double getTotalSystemMemory() {
   unsigned long long mem_in_byte;
-#ifdef __WIN32__
+#ifdef _WIN32
     MEMORYSTATUSEX status;
     status.dwLength = sizeof(status);
     GlobalMemoryStatusEx(&status);

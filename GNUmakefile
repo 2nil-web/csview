@@ -118,7 +118,7 @@ ${WINTAIL_PREFIX}${EXEXT} :  ${WINTAIL_OBJS}
 else
 ${WINTAIL_PREFIX}${EXEXT} : ${WINTAIL_SRCS}
 	${MSBUILD} wintail.sln -p:Configuration=Release
-	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .	
+	cp x64/Release/${WINTAIL_PREFIX}${EXEXT} .
 endif
 
 ${SINGLE_OBJS}: %.o: %.cpp

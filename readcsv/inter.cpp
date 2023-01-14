@@ -135,7 +135,7 @@ void inter(csv::file _cf, bool _in_memory) {
   std::string cmd;
   std::string::size_type pos;
 
-#ifdef __WIN32
+#ifdef _WIN32
   SetConsoleOutputCP(CP_UTF8);
 #endif
 

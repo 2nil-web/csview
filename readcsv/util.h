@@ -2,7 +2,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#ifdef __WIN32__
+#ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>

@@ -1,5 +1,9 @@
 
 ifneq ($(shell uname -s),Linux)
+ifeq (${HOSTNAME},PC-Denis)
+MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+endif
+
 ifneq (${MSYSTEM},MSYS)
 PATH:=/$(shell echo $(MSYSTEM) | tr A-Z a-z)/bin:${PATH}
 endif
@@ -12,7 +16,7 @@ else
 CXXFLAGS += -std=c++23
 endif
 
-LDFLAGS  += -static
+#LDFLAGS  += -static
 EXEXT=.exe
 ECHO=echo -e
 else
@@ -32,15 +36,22 @@ GDB=gdb
 STRIP=strip
 UPX=upx
 
+PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
-SRCS=readcsv.cpp inter.cpp main.cpp util.cpp
+SRCS=${PREFIX}.cpp inter.cpp main.cpp util.cpp
 OBJS=$(SRCS:.cpp=.o)
-TARGET=readcsv${EXEXT}
+TARGET=${PREFIX}${EXEXT}
 
 
 all : ${TARGET}
 
+ifeq ($(MSBUILD),)
 ${TARGET} : ${OBJS}
+else
+${TARGET} : ${SRCS}
+	${MSBUILD} ${PREFIX}.sln -p:Configuration=Release
+	cp x64/Release/${TARGET} .
+endif
 
 strip : $(TARGET)
 	@file ${TARGET} | grep stripped >/dev/null || ( $(STRIP) $(TARGET) && echo "Strip OK" )
@@ -67,6 +78,7 @@ clean :
 
 rclean :
 	rm -f *~ *.d *.o $(OBJS) $(TARGET) *.exe
+	rm -rf x64
 
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
