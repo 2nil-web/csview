@@ -17,6 +17,7 @@ EXEXT=.exe
 ECHO=echo -e
 else
 ECHO=echo
+CXXFLAGS += -std=c++20
 endif
 
 LDLIBS += -lstdc++
