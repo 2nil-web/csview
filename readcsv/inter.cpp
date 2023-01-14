@@ -116,6 +116,8 @@ void inter(csv::file _cf, bool _in_memory) {
   std::string::size_type pos;
 
   while (std::getline(std::cin, ln)) {
+
+    /*
     trim(ln);
     pos=ln.find_first_of(' ');
     if (pos == std::string::npos) {
@@ -129,6 +131,9 @@ void inter(csv::file _cf, bool _in_memory) {
     if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
     else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
     std::cout << prompt << std::flush;
+    */
+
+
   }
 }
 
