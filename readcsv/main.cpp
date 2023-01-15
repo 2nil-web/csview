@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
 
   if (args.size() > 0) {
     delay();
-    cf.load(args[0], in_memory);
+    if (!cf.load(args[0], in_memory)) cf.reset();
     double dl1=delay(false);
     std::cout << "Delay to read file " << args[1] << ' ' << dl1 << " seconds." << std::endl;
   } else {

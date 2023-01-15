@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <algorithm>
+#include <functional>
 
 #include "util.h"
 
@@ -57,5 +59,9 @@ double delay(bool start) {
 bool string_to_bool(std::string s) {
   if (s == "1" || s == "on" || s == "true") return true;
   return false;
+}
+
+bool any_of_ctype(const std::string s, std::function<int(int)> istype) {
+  return std::any_of(s.begin(), s.end(), [istype](char c) { return istype(c); } );
 }
 

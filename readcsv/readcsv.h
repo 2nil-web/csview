@@ -36,38 +36,35 @@ namespace csv {
     
     public:
     file (std::string _filename="")  { filename=_filename; };
+    ~file ()  { };
+    std::string get_filename() { return filename; };
 
     bool is_csv=true;
     char cell_separator=';', string_delimiter='\0', end_of_line='\n', escape='\\';
     size_t max_line_count=256, min_cell_size=8, max_cell_size=256;
 
-    ~file ()  { };
-    void setfmt(
-      bool _is_csv=true,
-      char _cell_separator=';',
-      char _string_delimiter='\0',
-      char _end_of_line='\n',
-      char _escape='\\',
-      size_t _max_line_count=256,
-      size_t _min_cell_size=8,
-      size_t _max_cell_size=256
-    );
-
-    std::string get_filename() { return filename; };
-
+    void reset();
     bool read_from_file();
     bool read_in_memory();
-    void reset();
     bool load(std::string _filename, bool in_memory=true);
-    void stat(bool line_by_line=true);
+
+    void stat(bool metadata_lines=true);
+
     std::string read_substring_from_file(std::uintmax_t start_read=0, std::uintmax_t length_read=0);
-    void list(std::uintmax_t r1, std::uintmax_t r2);
-    void list(std::uintmax_t r);
-    void list();
-    bool parse_row_range(std::string, std::vector<std::uintmax_t>&);
-    bool parse_row_list(std::string, std::vector<std::uintmax_t>&);
-    bool parse_cell_range(std::string, std::vector<std::uintmax_t>&);
-    bool parse_cell_list(std::string, std::vector<std::uintmax_t>&);
+
+    bool parse_range(std::string, std::vector<std::uintmax_t>&);
+    bool parse_list(std::string, std::vector<std::uintmax_t>&);
+
+    void list_row(std::uintmax_t r1, std::uintmax_t r2);
+    void list_row(std::uintmax_t r);
+    void list_row();
+
+    std::uintmax_t cell_count();
+    bool get_cell(std::uintmax_t, cell&);
+    bool get_cells(std::uintmax_t, std::uintmax_t, std::vector<cell>&);
+    void list_cell(std::uintmax_t c1, std::uintmax_t c2);
+    void list_cell(std::uintmax_t c);
+    void list_cell();
   };
 }
 

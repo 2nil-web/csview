@@ -9,7 +9,6 @@
 #include "util.h"
 #include "inter.h"
 
-csv::file cf;
 std::string cmd_parm="";
 bool in_memory=true;
 
@@ -20,37 +19,37 @@ size_t curr_csv_idx=0;
 void help() {
   std::cout << R"EOF(Available commands are :
 help: display this message
-inf: display various informations on the current file
+info: display various informations on the current file
 row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
-cell: displays cells of the current file. Parameters are mandatory. They are of the form r1,c1. They might be provided in range form "r1,c1-r2,c2" or in list form "r1,c1 r2,c2 r3,c3 ...".
+cell: displays cells of the current file. Behave like the 'row' command but for cell indexes.
 reload: reload the current file. This might be useful if the file has been modified.
 load filename: load a new file and set it as the current file.
-set n: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
+set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
 !: execute a command in the current shell.
 exit/quit/x/q: leave interactive mode.
 )EOF";
 }
 
 void row() {
-  if (cmd_parm == "") csvs[curr_csv_idx].list();
+  if (cmd_parm == "") csvs[curr_csv_idx].list_row();
   else {
     std::vector<std::uintmax_t> parm;
-    if (csvs[curr_csv_idx].parse_row_range(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list(parm[i], parm[i+1]);
-    } else if (csvs[curr_csv_idx].parse_row_list(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list(parm[i]);
+    if (csvs[curr_csv_idx].parse_range(cmd_parm, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list_row(parm[i], parm[i+1]);
+    } else if (csvs[curr_csv_idx].parse_list(cmd_parm, parm)) {
+      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list_row(parm[i]);
     }
   }
 }
 
 void cell() {
-  if (cmd_parm == "") csvs[curr_csv_idx].list();
+  if (cmd_parm == "") csvs[curr_csv_idx].list_cell();
   else {
     std::vector<std::uintmax_t> parm;
-    if (csvs[curr_csv_idx].parse_cell_range(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list(parm[i], parm[i+1]);
-    } else if (csvs[curr_csv_idx].parse_cell_list(cmd_parm, parm)) {
-      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list(parm[i]);
+    if (csvs[curr_csv_idx].parse_range(cmd_parm, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list_cell(parm[i], parm[i+1]);
+    } else if (csvs[curr_csv_idx].parse_list(cmd_parm, parm)) {
+      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list_cell(parm[i]);
     }
   }
 }
@@ -102,14 +101,16 @@ void quit () {
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
   { "help", help },
-  { "inf", inf },
+  { "info", inf },
   { "row", row },
   { "cell", cell },
   { "load", []() {
        csv::file cf;
-       cf.load(cmd_parm, in_memory);
-       csvs.push_back(cf);
-       curr_csv_idx=csvs.size()-1;
+
+       if (cf.load(cmd_parm, in_memory)) {
+         csvs.push_back(cf);
+         curr_csv_idx=csvs.size()-1;
+       }
      }
   },
   { "reload", []()
@@ -129,7 +130,7 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
 void inter(csv::file _cf, bool _in_memory) {
   in_memory=_in_memory;
 
-  csvs.push_back(_cf);
+  if (_cf.get_filename() != "") csvs.push_back(_cf);
   std::string ln, prompt="> ";
   std::cout << prompt << std::flush;
   std::string cmd;
@@ -160,7 +161,7 @@ void inter(csv::file _cf, bool _in_memory) {
     }
 
     if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
-    else if (ln != "") std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
+    else if (ln != "" && any_of_ctype(ln, isgraph)) std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
     std::cout << prompt << std::flush;
   }
 }
