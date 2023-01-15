@@ -313,7 +313,7 @@ void csv::file::list_row(std::uintmax_t r) { list_row(r, r); }
 void csv::file::list_row() {
   if (rows.size() > 1000) {
     std::string rep;
-    std::cout << "You are about to display more than a thousant rows. Are you sure that you want to proceed ? (y/n)" << std::endl;
+    std::cout << "You are about to display more than a thousand rows. Do you want to proceed ? (y/n)" << std::endl;
     std::cin >> rep;
     if (rep != "y") return;
   }
@@ -325,6 +325,30 @@ std::uintmax_t csv::file::cell_count() {
   std::uintmax_t nc=0;
   for(auto row:rows) nc+=row.cells.size();
   return nc;
+}
+
+#define trc std::cout << __LINE__ << std::endl;
+
+// Retourne un vecteur de cellule de l'index de cellule ic1 jusqu'à l'index de cellule ic2
+bool csv::file::get_cells(std::uintmax_t ic1, std::uintmax_t ic2, std::vector<csv::cell>& c) {
+  std::uintmax_t ic=0;
+  std::cout << "Get cells " << ic1 << " until " << ic2 << std::endl;
+  c.clear();
+
+  for(auto row:rows) {
+    for(auto cell:row.cells) {
+      ic++;
+      if (ic > ic1 && ic < ic2) {
+        //std::cout << "Get cell " << ic << std::endl;
+        c.push_back(cell);
+      }
+    }
+
+    if (ic > ic2) break;
+  }
+
+  if (c.size() > 0) return true;
+  return false;
 }
 
 // Retourne une cellule en fonction de son index
@@ -343,39 +367,42 @@ bool csv::file::get_cell(uintmax_t ic, csv::cell& c) {
   return false;
 }
 
-// Retourne un vecteur de cellule de l'index ic1 jusqu'à l'index ic2
-bool csv::file::get_cells(std::uintmax_t ic1, std::uintmax_t ic2, std::vector<csv::cell>& c) {
-  return false;
-
-  std::uintmax_t nc=0;
-
-  std::vector<csv::cell> cells;
-  for(auto row:rows) {
-  } 
-
-  return false;
-}
-
 // List a range of cells that are passed from 1 to size but converted to 0 to size-1
 void csv::file::list_cell(std::uintmax_t ic1, std::uintmax_t ic2) {
-  std::cout << "List cell " << ic1;
-
-  cell c1;
-  get_cell(ic1, c1);
-
   if (ic1 == ic2) {
-    std::cout << "Display cell " << ic1 << ", starting at char " << c1.start << " and ending at char " << c1.end;
+    cell c1;
+    if (get_cell(ic1, c1)) {
+      std::cout << "Display cell " << ic1 << ", starting at char " << c1.start << " and ending at char " << c1.end << std::endl;
+
+      if (loaded_in_mem) {
+        std::cout << ic1 << ": " << in_mem.substr(c1.start, c1.end-c1.start) << std::endl;
+      } else {
+        std::cout << ic1 << ": " << read_substring_from_file(c1.start, c1.end-c1.start) << std::endl;
+      }
+    }
   } else {
-    if (ic2-ic1 > 100) {
+    if (ic2-ic1 > 1000) {
       std::string rep;
-      std::cout << "You are about to display more than a thousant rows. Are you sure that you want to proceed ? (y/n)" << std::endl;
+      std::cout << "You may be about to display more than a thousand cells. Do you want to proceed ? (y/n)" << std::endl;
       std::cin >> rep;
       if (rep != "y") return;
     }
 
-    cell c2;
-    get_cell(ic2, c2);
-    std::cout << "Display from cell " << ic1 << " until cell " << ic2 << ", starting at char " << c1.start << " and ending at char " << c2.end;
+    std::vector<csv::cell> cs;
+    if (get_cells(ic1, ic2, cs)) {
+      std::cout << "Display from cell " << ic1 << " until cell " << ic2 << ", starting at char " << cs.front().start << " and ending at char " << cs.back().end << std::endl;
+      auto ic=ic1;
+
+      for(auto c:cs) {
+        if (loaded_in_mem) {
+          std::cout << ic << ": " << in_mem.substr(c.start, c.end-c.start) << std::endl;
+        } else {
+          std::cout << ic << ": " << read_substring_from_file(c.start, c.end-c.start) << std::endl;
+        }
+
+        ic++;
+      }
+    }
   }
 
   std::cout << std::endl;
