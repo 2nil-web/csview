@@ -51,6 +51,7 @@ namespace csv {
     void stat(bool metadata_lines=true);
 
     std::string read_substring_from_file(std::uintmax_t start_read=0, std::uintmax_t length_read=0);
+    std::string output_substr(std::uintmax_t start, std::uintmax_t end);
 
     bool parse_range(std::string, std::vector<std::uintmax_t>&);
     bool parse_list(std::string, std::vector<std::uintmax_t>&);
@@ -60,8 +61,7 @@ namespace csv {
     void list_row();
 
     std::uintmax_t cell_count();
-    bool get_cell(std::uintmax_t, cell&);
-    bool get_cells(std::uintmax_t, std::uintmax_t, std::vector<cell>&);
+    bool get_cell(std::uintmax_t, std::uintmax_t, std::vector<cell>&);
     void list_cell(std::uintmax_t c1, std::uintmax_t c2);
     void list_cell(std::uintmax_t c);
     void list_cell();

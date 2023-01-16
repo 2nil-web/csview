@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <iomanip>
 
 #include "util.h"
 #include "readcsv.h"
@@ -236,6 +237,11 @@ std::string csv::file::read_substring_from_file(std::uintmax_t start_read, std::
   return s;
 }
 
+std::string csv::file::output_substr(std::uintmax_t start, std::uintmax_t end) {
+  if (loaded_in_mem) return in_mem.substr(start, end-start);
+  else return read_substring_from_file(start, end-start);
+}
+
 // Cherche une ou plusieurs sous-chaine numériques de la forme "n1-n2 n3-n4 ..." et les range dans le vector
 // Le vector résultant doit donc avoir une taille paire et chaque paire définie une plage
 bool csv::file::parse_range(std::string s, std::vector<std::uintmax_t>& parm) {
@@ -297,12 +303,11 @@ void csv::file::list_row(std::uintmax_t r1, std::uintmax_t r2) {
 
   r2--;
 
+  // Length of padding before row number
+  size_t padl=std::to_string(r2+1).size();
+
   for(auto i=r1; i <= r2; i++) {
-    if (loaded_in_mem) {
-      std::cout << i+1 << ": " << in_mem.substr(rows[i].start, rows[i].end-rows[i].start) << std::endl;
-    } else {
-      std::cout << i+1 << ": " << read_substring_from_file(rows[i].start, rows[i].end-rows[i].start) << std::endl;
-    }
+    std::cout << std::setfill(' ') << std::setw(padl) << i+1 << ": " << output_substr(rows[i].start, rows[i].end) << std::endl;
   }
 }
 
@@ -330,18 +335,17 @@ std::uintmax_t csv::file::cell_count() {
 #define trc std::cout << __LINE__ << std::endl;
 
 // Retourne un vecteur de cellule de l'index de cellule ic1 jusqu'à l'index de cellule ic2
-bool csv::file::get_cells(std::uintmax_t ic1, std::uintmax_t ic2, std::vector<csv::cell>& c) {
+bool csv::file::get_cell(std::uintmax_t ic1, std::uintmax_t ic2, std::vector<csv::cell>& c) {
   std::uintmax_t ic=0;
-  std::cout << "Get cells " << ic1 << " until " << ic2 << std::endl;
   c.clear();
 
   for(auto row:rows) {
     for(auto cell:row.cells) {
-      ic++;
-      if (ic > ic1 && ic < ic2) {
-        //std::cout << "Get cell " << ic << std::endl;
+      if (ic >= ic1 && ic <= ic2) {
         c.push_back(cell);
       }
+
+      ic++;
     }
 
     if (ic > ic2) break;
@@ -351,61 +355,32 @@ bool csv::file::get_cells(std::uintmax_t ic1, std::uintmax_t ic2, std::vector<cs
   return false;
 }
 
-// Retourne une cellule en fonction de son index
-bool csv::file::get_cell(uintmax_t ic, csv::cell& c) {
-  std::uintmax_t nc=0;
-
-  for(auto row:rows) {
-    if (nc+row.cells.size() > ic) {
-      c=row.cells[ic-nc];
-      return true;
-    }
-
-    nc+=row.cells.size();
-  }
-
-  return false;
-}
-
 // List a range of cells that are passed from 1 to size but converted to 0 to size-1
 void csv::file::list_cell(std::uintmax_t ic1, std::uintmax_t ic2) {
-  if (ic1 == ic2) {
-    cell c1;
-    if (get_cell(ic1, c1)) {
-      std::cout << "Display cell " << ic1 << ", starting at char " << c1.start << " and ending at char " << c1.end << std::endl;
-
-      if (loaded_in_mem) {
-        std::cout << ic1 << ": " << in_mem.substr(c1.start, c1.end-c1.start) << std::endl;
-      } else {
-        std::cout << ic1 << ": " << read_substring_from_file(c1.start, c1.end-c1.start) << std::endl;
-      }
-    }
-  } else {
-    if (ic2-ic1 > 1000) {
-      std::string rep;
-      std::cout << "You may be about to display more than a thousand cells. Do you want to proceed ? (y/n)" << std::endl;
-      std::cin >> rep;
-      if (rep != "y") return;
-    }
-
-    std::vector<csv::cell> cs;
-    if (get_cells(ic1, ic2, cs)) {
-      std::cout << "Display from cell " << ic1 << " until cell " << ic2 << ", starting at char " << cs.front().start << " and ending at char " << cs.back().end << std::endl;
-      auto ic=ic1;
-
-      for(auto c:cs) {
-        if (loaded_in_mem) {
-          std::cout << ic << ": " << in_mem.substr(c.start, c.end-c.start) << std::endl;
-        } else {
-          std::cout << ic << ": " << read_substring_from_file(c.start, c.end-c.start) << std::endl;
-        }
-
-        ic++;
-      }
-    }
+  if (ic1 == 0 || ic2 == 0) {
+    std::cout << "Cell numbers start from 1" << std::endl;
+    return;
   }
 
-  std::cout << std::endl;
+  if (ic2-ic1 > 1000) {
+    std::string rep;
+    std::cout << "You may be about to display more than a thousand cells. Do you want to proceed ? (y/n)" << std::endl;
+    std::cin >> rep;
+    if (rep != "y") return;
+  }
+
+  std::vector<csv::cell> cs;
+
+  if (get_cell(ic1-1, ic2-1, cs)) {
+    auto ic=ic1;
+    // Length of padding before cell number
+    size_t padl=std::to_string(ic2).size();
+
+    for(auto c:cs) {
+      std::cout << std::setfill(' ') << std::setw(padl) << ic << ": " << output_substr(c.start, c.end) << std::endl;
+      ic++;
+    }
+  }
 }
 
 // List only one cell

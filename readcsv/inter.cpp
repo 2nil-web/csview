@@ -20,10 +20,10 @@ void help() {
   std::cout << R"EOF(Available commands are :
 help: display this message
 info: display various informations on the current file
-row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...".
-cell: displays cells of the current file. Behave like the 'row' command but for cell indexes.
-reload: reload the current file. This might be useful if the file has been modified.
+row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of rows.
+cell: Behave like the 'row' command but for cells.
 load filename: load a new file and set it as the current file.
+rload: reload the current file. This might be useful if the file has been modified.
 set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
 !: execute a command in the current shell.
 exit/quit/x/q: leave interactive mode.
@@ -93,6 +93,18 @@ void inf() {
 void fmt() {
 }
 
+void load() {
+  csv::file cf;
+
+  if (cf.load(cmd_parm, in_memory)) {
+    csvs.push_back(cf);
+    curr_csv_idx=csvs.size()-1;
+  }
+}
+
+void reload() {
+  csvs[curr_csv_idx].load(cmd_parm, in_memory); 
+}
 
 void quit () {
   exit(0);
@@ -100,31 +112,16 @@ void quit () {
 
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
-  { "help", help },
-  { "info", inf },
-  { "row", row },
-  { "cell", cell },
-  { "load", []() {
-       csv::file cf;
-
-       if (cf.load(cmd_parm, in_memory)) {
-         csvs.push_back(cf);
-         curr_csv_idx=csvs.size()-1;
-       }
-     }
-  },
-  { "reload", []()
-    {
-      csvs[curr_csv_idx].load(cmd_parm, in_memory);
-    }
-  },
-  { "set", set },
-  { "fmt", fmt },
+  { "help",   help   },  { "h",   help   },
+  { "info",   inf    },  { "inf", inf }, { "i", inf }, { "stat", inf },
+  { "row",    row    },  { "r", row },
+  { "cell",   cell   },  { "c", cell },
+  { "load",   load   },  { "l", load },
+  { "reload", reload },  { "rl", reload },
+  { "set",    set    },  { "s", set },
+  { "fmt",    fmt    },
+  { "quit",   quit   },  { "q", quit }, { "exit", quit }, { "x", quit },
   { "!", []() { std::system(cmd_parm.c_str()); } },
-  { "quit", quit },
-  { "q", quit },
-  { "x", quit },
-  { "exit", quit }
 };
 
 void inter(csv::file _cf, bool _in_memory) {
