@@ -30,7 +30,11 @@ exit/quit/x/q: leave interactive mode.
 )EOF";
 }
 
+#define RETURN_IF_NO_LOADED_FILE  if (csvs.size() == 0) { std::cout << "No file loaded" << std::endl; return; }
+
 void row() {
+  RETURN_IF_NO_LOADED_FILE
+
   if (cmd_parm == "") csvs[curr_csv_idx].list_row();
   else {
     std::vector<std::uintmax_t> parm;
@@ -43,6 +47,8 @@ void row() {
 }
 
 void cell() {
+  RETURN_IF_NO_LOADED_FILE
+
   if (cmd_parm == "") csvs[curr_csv_idx].list_cell();
   else {
     std::vector<std::uintmax_t> parm;
@@ -55,6 +61,8 @@ void cell() {
 }
 
 void set() {
+  RETURN_IF_NO_LOADED_FILE
+
   if (cmd_parm == "") {
     for(size_t i=0; i < csvs.size(); i++) {
       if (i == curr_csv_idx) std::cout << '*';
@@ -78,16 +86,18 @@ std::string get_fmt(std::string name, char value) {
   return name;
 }
 
-void inf() {
-      std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
-      std::cout << 
-        get_fmt("cell_sep", csvs[curr_csv_idx].cell_separator) << ", " <<
-        get_fmt("str_delim", csvs[curr_csv_idx].string_delimiter) << ", " <<
-        get_fmt("eol", csvs[curr_csv_idx].end_of_line) << ", " <<
-        get_fmt("esc", csvs[curr_csv_idx].escape) <<
-      std::endl;
+void info() {
+  RETURN_IF_NO_LOADED_FILE
 
-      csvs[curr_csv_idx].stat(string_to_bool(cmd_parm));
+  std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
+  std::cout << 
+    get_fmt("cell_sep", csvs[curr_csv_idx].cell_separator) << ", " <<
+    get_fmt("str_delim", csvs[curr_csv_idx].string_delimiter) << ", " <<
+    get_fmt("eol", csvs[curr_csv_idx].end_of_line) << ", " <<
+    get_fmt("esc", csvs[curr_csv_idx].escape) <<
+  std::endl;
+
+  csvs[curr_csv_idx].stat(string_to_bool(cmd_parm));
 }
 
 void fmt() {
@@ -102,7 +112,8 @@ void load() {
   }
 }
 
-void reload() {
+void rload() {
+  RETURN_IF_NO_LOADED_FILE
   csvs[curr_csv_idx].load(cmd_parm, in_memory); 
 }
 
@@ -112,15 +123,15 @@ void quit () {
 
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
-  { "help",   help   },  { "h",   help   },
-  { "info",   inf    },  { "inf", inf }, { "i", inf }, { "stat", inf },
-  { "row",    row    },  { "r", row },
-  { "cell",   cell   },  { "c", cell },
-  { "load",   load   },  { "l", load },
-  { "reload", reload },  { "rl", reload },
-  { "set",    set    },  { "s", set },
-  { "fmt",    fmt    },
-  { "quit",   quit   },  { "q", quit }, { "exit", quit }, { "x", quit },
+  { "help",   help  },  { "h",    help  },
+  { "info",   info  },  { "inf",  info  }, { "i", info }, { "stat", info },
+  { "row",    row   },  { "r",    row   },
+  { "cell",   cell  },  { "c",    cell  },
+  { "load",   load  },  { "l",    load  },
+  { "reload", rload },  { "rl",   rload },
+  { "set",    set   },  { "s",    set   },
+  { "fmt",    fmt   },
+  { "quit",   quit  },  { "exit", quit  }, { "q", quit }, { "x", quit },
   { "!", []() { std::system(cmd_parm.c_str()); } },
 };
 
