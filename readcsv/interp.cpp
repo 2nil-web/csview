@@ -7,7 +7,7 @@
 
 #include "readcsv.h"
 #include "util.h"
-#include "inter.h"
+#include "interp.h"
 
 std::string cmd_parm="";
 bool in_memory=true;

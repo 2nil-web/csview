@@ -133,7 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="inter.cpp" />
+    <ClCompile Include="interp.cpp" />
     <ClCompile Include="readcsv.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>

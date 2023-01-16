@@ -38,7 +38,7 @@ UPX=upx
 
 PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
-SRCS=${PREFIX}.cpp inter.cpp main.cpp util.cpp
+SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=${PREFIX}${EXEXT}
 

@@ -5,7 +5,7 @@
 #include <filesystem>
 
 #include "util.h"
-#include "inter.h"
+#include "interp.h"
 
 void usage(std::string progpath, std::ostream& out = std::cout) {
     out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
