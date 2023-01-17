@@ -121,6 +121,21 @@ bool csv::file::read_in_memory() {
   return false;
 }
 
+void csv::file::find(std::string sf) {
+  uintmax_t n=1;
+  std::string s;
+  size_t padl=std::to_string(rows.size()).size();
+
+  for(auto row:rows) {
+    s=output_substr(row.start, row.end);
+
+    if (s.find(sf) != std::string::npos)
+      std::cout << std::setfill(' ') << std::setw(padl) << n << ": " << s << std::endl;
+
+    n++;
+  }
+}
+
 // Load a file in memory or not
 bool csv::file::load(std::string _filename, bool in_memory) {
   reset();

@@ -22,6 +22,8 @@ help: display this message
 info: display various informations on the current file
 row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of rows.
 cell: Behave like the 'row' command but for cells.
+find: Display the row where the string is found (may be a regex).
+cfind: Display the cells where the string is found.
 load filename: load a new file and set it as the current file.
 rload: reload the current file. This might be useful if the file has been modified.
 set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
@@ -121,12 +123,18 @@ void quit () {
   exit(0);
 }
 
+void find () {
+  RETURN_IF_NO_LOADED_FILE
+  csvs[curr_csv_idx].find(cmd_parm);
+}
+
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
   { "help",   help  },  { "h",    help  },
   { "info",   info  },  { "inf",  info  }, { "i", info }, { "stat", info },
   { "row",    row   },  { "r",    row   },
   { "cell",   cell  },  { "c",    cell  },
+  { "find",   find  },  { "f",    find  },
   { "load",   load  },  { "l",    load  },
   { "reload", rload },  { "rl",   rload },
   { "set",    set   },  { "s",    set   },
