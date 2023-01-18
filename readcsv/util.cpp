@@ -30,6 +30,15 @@ std::string trim(std::string& s) {
   return s;
 }
 
+std::vector<std::string> split(const std::string &str, char delim) {
+ std::vector<std::string> sv;
+ std::stringstream ss(str);
+ std::string s;
+ while (getline(ss, s, delim)) sv.push_back(s);
+
+ return sv;
+}
+
 bool swallow_file(std::string &file_path, std::string &s) {
   std::ifstream in(file_path, std::ios::in | std::ios::binary);
 
@@ -63,5 +72,9 @@ bool string_to_bool(std::string s) {
 
 bool any_of_ctype(const std::string s, std::function<int(int)> istype) {
   return std::any_of(s.begin(), s.end(), [istype](char c) { return istype(c); } );
+}
+
+bool all_of_ctype(const std::string s, std::function<int(int)> istype) {
+  return std::all_of(s.begin(), s.end(), [istype](char c) { return istype(c); } );
 }
 

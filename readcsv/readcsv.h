@@ -56,6 +56,7 @@ namespace csv {
 
     bool parse_range(std::string, std::vector<std::uintmax_t>&);
     bool parse_list(std::string, std::vector<std::uintmax_t>&);
+    bool parse_coord(std::string, uintmax_t& r, uintmax_t& c);
 
     void list_row(std::uintmax_t r1, std::uintmax_t r2);
     void list_row(std::uintmax_t r);
@@ -66,6 +67,7 @@ namespace csv {
     void list_cell(std::uintmax_t c1, std::uintmax_t c2);
     void list_cell(std::uintmax_t c);
     void list_cell();
+    bool get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s);
   };
 }
 

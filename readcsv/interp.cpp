@@ -22,6 +22,7 @@ help: display this message
 info: display various informations on the current file
 row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of rows.
 cell: Behave like the 'row' command but for cells.
+rowcol: display a cell by its row and column coordinate. By example rowcol 0,0 <=> cell 0 and rowcol 'lastrow','lastcol' <=> cell 'lastcellindex'.
 find: Display the row where the string is found (may be a regex).
 cfind: Display the cells where the string is found.
 load filename: load a new file and set it as the current file.
@@ -35,7 +36,7 @@ exit/quit/x/q: leave interactive mode.
 #define RETURN_IF_NO_LOADED_FILE  if (csvs.size() == 0) { std::cout << "No file loaded" << std::endl; return; }
 
 void row() {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
 
   if (cmd_parm == "") csvs[curr_csv_idx].list_row();
   else {
@@ -49,7 +50,7 @@ void row() {
 }
 
 void cell() {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
 
   if (cmd_parm == "") csvs[curr_csv_idx].list_cell();
   else {
@@ -63,7 +64,7 @@ void cell() {
 }
 
 void set() {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
 
   if (cmd_parm == "") {
     for(size_t i=0; i < csvs.size(); i++) {
@@ -89,7 +90,7 @@ std::string get_fmt(std::string name, char value) {
 }
 
 void info() {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
 
   std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
   std::cout << 
@@ -115,7 +116,7 @@ void load() {
 }
 
 void rload() {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
   csvs[curr_csv_idx].load(cmd_parm, in_memory); 
 }
 
@@ -124,8 +125,22 @@ void quit () {
 }
 
 void find () {
-  RETURN_IF_NO_LOADED_FILE
+  RETURN_IF_NO_LOADED_FILE;
   csvs[curr_csv_idx].find(cmd_parm);
+}
+
+void rwcol () {
+  RETURN_IF_NO_LOADED_FILE;
+
+  uintmax_t r, c;
+  if (csvs[curr_csv_idx].parse_coord(cmd_parm, r, c)) {
+    std::string s;
+    if (csvs[curr_csv_idx].get_cell_by_rc(r, c, s)) {
+      std::cout << r << ',' << c << ": " << s << std::endl;
+    } else {
+      std::cout << "Bad coordinate " << cmd_parm << ',' << c << std::endl;
+    }
+  }
 }
 
 
@@ -134,6 +149,7 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
   { "info",   info  },  { "inf",  info  }, { "i", info }, { "stat", info },
   { "row",    row   },  { "r",    row   },
   { "cell",   cell  },  { "c",    cell  },
+  { "rowcol", rwcol },  { "rc",   rwcol },
   { "find",   find  },  { "f",    find  },
   { "load",   load  },  { "l",    load  },
   { "reload", rload },  { "rl",   rload },

@@ -298,6 +298,43 @@ bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
   return true;
 }
 
+bool csv::file::get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s) {
+  if (r < rows.size()) {
+    std::vector<std::string> rc=split(output_substr(rows[r].start, rows[r].end), cell_separator);
+    if (c < rc.size()) {
+      s=rc[c];
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Extract a row and a column value from a string
+bool csv::file::parse_coord(std::string s, uintmax_t& r, uintmax_t& c) {
+  trim(s);
+
+  // Split the string on the colon
+  std::vector<std::string> rc=split(s, ',');
+  r--;
+  c--;
+
+  if (rc.size() == 2) {
+    trim(rc[0]);
+    trim(rc[1]);
+
+    if (all_of_ctype(rc[0], isdigit) && all_of_ctype(rc[1], isdigit)) {
+      r=std::stoi(rc[0]);
+      c=std::stoi(rc[1]);
+
+      if (r == 0 || c == 0) std::cout << "Row and column coordinate must be between 1 and row or column max" << std::endl;
+      else return true;
+    } else std::cout << "A coordinate value is an integer only value." << std::endl;
+  } else std::cout << "Coordinate is a pair of integer values separated by a colon." << std::endl;
+
+  return false;
+}
+
 // List a range of rows that are passed from 1 to size but converted to 0 to size-1
 void csv::file::list_row(std::uintmax_t r1, std::uintmax_t r2) {
   if (r1 < 1) {
