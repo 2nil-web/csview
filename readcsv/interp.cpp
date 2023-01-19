@@ -27,6 +27,8 @@ find: Display the row where the string is found (may be a regex).
 cfind: Display the cells where the string is found.
 load filename: load a new file and set it as the current file.
 rload: reload the current file. This might be useful if the file has been modified.
+transpose: transpose the matrix represented by the csv.
+save: save the file.
 set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
 !: execute a command in the current shell.
 exit/quit/x/q: leave interactive mode.
