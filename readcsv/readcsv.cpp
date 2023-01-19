@@ -155,6 +155,8 @@ bool csv::file::load(std::string _filename, bool in_memory) {
   return ret;
 }
 
+
+
 // Display various infos on a file optionally preceded by each of its metadata lines
 void csv::file::stat(bool md_lines) {
   std::uintmax_t 
@@ -301,6 +303,7 @@ bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
 bool csv::file::get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s) {
   if (r < rows.size()) {
     std::vector<std::string> rc=split(output_substr(rows[r].start, rows[r].end), cell_separator);
+
     if (c < rc.size()) {
       s=rc[c];
       return true;
@@ -309,6 +312,7 @@ bool csv::file::get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s) {
 
   return false;
 }
+
 
 // Extract a row and a column value from a string
 bool csv::file::parse_coord(std::string s, uintmax_t& r, uintmax_t& c) {
@@ -333,6 +337,74 @@ bool csv::file::parse_coord(std::string s, uintmax_t& r, uintmax_t& c) {
   } else std::cout << "Coordinate is a pair of integer values separated by a colon." << std::endl;
 
   return false;
+}
+
+uintmax_t csv::file::get_maxcol() {
+  uintmax_t max=0, curr;
+  for(auto r:rows) {
+    curr=r.cells.size();
+    if (max < curr) max=curr;
+  }
+
+  return max;
+}
+
+std::string rem_crlf(std::string& s) {
+  // Remove CR
+  if (s[s.size()-1] == '\r') s.pop_back();
+  // Remove LF
+  if (s[s.size()-1] == '\n') s.pop_back();
+  return s;
+}
+
+
+// Transposition de la matrice.
+// Les lignes deviennent des colonnes et inversement.
+void csv::file::transpose() {
+  bool was_in_mem=loaded_in_mem;
+
+  if (!loaded_in_mem) read_in_memory();
+
+  std::string s, tr="";
+  uintmax_t r=0, c=0, maxcol=get_maxcol();
+
+  for (c=0; c < maxcol; c++) {
+    for (r=0; r < rows.size(); r++) {
+      if (r > 0) tr+=cell_separator;
+      if (get_cell_by_rc(r, c, s) && s != "") {
+        rem_crlf(s);
+        if (s[s.size()-1] == end_of_line) s.pop_back();
+        tr+=s;
+      }
+    }
+
+    tr+=end_of_line;
+  }
+
+  std::string sfn=filename;
+  reset();
+  in_mem=tr;
+  for(auto c:in_mem) parse_file(c);
+  end_parse_file();
+  filename=sfn;
+
+  if (!was_in_mem) {
+    save_from_memory();
+    loaded_in_mem=was_in_mem;
+  }
+}
+
+bool csv::file::save_from_memory() {
+  if (loaded_in_mem) {
+    std::ofstream out(filename);
+    std::cout << "Saving file " << filename << std::endl;
+    out << in_mem;
+    out.close();
+    return true;
+  } else {
+    std::cout << "File " << filename << " is not in memory" << std::endl;
+    return false;
+  }
 }
 
 // List a range of rows that are passed from 1 to size but converted to 0 to size-1

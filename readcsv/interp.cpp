@@ -143,6 +143,18 @@ void rwcol () {
   }
 }
 
+void transp () {
+  RETURN_IF_NO_LOADED_FILE;
+
+  csvs[curr_csv_idx].transpose();
+}
+
+void save () {
+  RETURN_IF_NO_LOADED_FILE;
+
+  csvs[curr_csv_idx].save_from_memory();
+}
+
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
   { "help",   help  },  { "h",    help  },
@@ -151,7 +163,9 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
   { "cell",   cell  },  { "c",    cell  },
   { "rowcol", rwcol },  { "rc",   rwcol },
   { "find",   find  },  { "f",    find  },
+  { "transpose", transp },  { "tr", transp },
   { "load",   load  },  { "l",    load  },
+  { "save",   save  },  { "sv",    save  },
   { "reload", rload },  { "rl",   rload },
   { "set",    set   },  { "s",    set   },
   { "fmt",    fmt   },

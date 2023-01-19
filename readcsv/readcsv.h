@@ -44,10 +44,13 @@ namespace csv {
     size_t max_line_count=256, min_cell_size=8, max_cell_size=256;
 
     void reset();
+    uintmax_t get_maxcol();
+    void transpose();
     void find(std::string);
     bool read_from_file();
     bool read_in_memory();
     bool load(std::string _filename, bool in_memory=true);
+    bool save_from_memory();
 
     void stat(bool metadata_lines=true);
 
