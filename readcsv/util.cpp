@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <chrono>
@@ -65,8 +66,16 @@ double delay(bool start) {
   }
 }
 
+char string_to_ascii(std::string s) {
+  if (s.size() == 1) return s[0];
+  if (all_of_ctype(s, isdigit)) return (char)std::stoi(s);
+  std::cout << "Undefined character or ascii code, returning space" << std::endl;
+}
+
 bool string_to_bool(std::string s) {
   if (s == "1" || s == "on" || s == "true") return true;
+  if (s == "0" || s == "off" || s == "false") return false;
+  std::cout << "Unknown boolean value, returning false" << std::endl;
   return false;
 }
 

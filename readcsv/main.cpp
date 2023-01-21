@@ -11,9 +11,10 @@ void usage(std::string progpath, std::ostream& out = std::cout) {
     out << "Usage: " << std::filesystem::path(progpath).stem().string() << std::endl;
     out << R"EOF(Command line viewer for csv or text file
 Optionnal parameters :        
-  -h : display this help.
-  -i : batch (non interactive) mode is the default, this paraemter give access to the interactive mode. Once done, type the "help" command for more information.
-Foolowing, at least the name of the file to browse must be provided.
+  -h : display this help and leave.
+  -b : batch mode.
+  -i : interactive mode is the default, type help when in this mode.
+Following, at least the name of the file to browse must be provided.
 Then 3 other optional arguments might be provided in boolean form (1/0, on/off, true/false):
   Read as cvs (on) or read as a text file (off), by default this argument is on.
   Stats line by line or not, by default in interactive mode this is off and in batch mode this is on.
@@ -36,10 +37,11 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  bool interactive=false;
+  bool interactive=true;
 
-  if (args[0] == "-i") {
-    interactive=true;
+  if (args[0] == "-i") args.erase(args.begin());
+  else if (args[0] == "-b") {
+    interactive=false;
     args.erase(args.begin());
   }
 
@@ -61,7 +63,6 @@ int main(int argc, char *argv[]) {
 
   csv::file cf;
   cf.is_csv=is_csv;
-//  cf.setfmt(is_csv);
 
   if (args.size() > 0) {
     delay();

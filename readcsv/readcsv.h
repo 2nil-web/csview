@@ -38,6 +38,7 @@ namespace csv {
     file (std::string _filename="")  { filename=_filename; };
     ~file ()  { };
     std::string get_filename() { return filename; };
+    bool is_in_mem() { return loaded_in_mem; };
 
     bool is_csv=true;
     char cell_separator=';', string_delimiter='\0', end_of_line='\n', escape='\\';

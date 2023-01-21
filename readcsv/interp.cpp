@@ -10,28 +10,50 @@
 #include "interp.h"
 
 std::string cmd_parm="";
-bool in_memory=true;
+bool g_in_memory=true;
 
 
 std::vector<csv::file> csvs;
 size_t curr_csv_idx=0;
 
+std::string parse_underline(std::string s) {
+  std::string ret="";
+  bool close_ul=false;
+
+  for(auto c:s) {
+    if (c == '_') {
+      ret+="\033[4m\033[92m";
+      close_ul=true;
+    } else {
+      ret+=c;
+
+      if (close_ul) {
+        ret+="\033[0m";
+        close_ul=false;
+      }
+    }
+  }
+
+  return ret;
+}
+
 void help() {
-  std::cout << R"EOF(Available commands are :
-help: display this message
-info: display various informations on the current file
-line: display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of line in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of lines.
-cell: Behave like the 'line' command but for cells.
-linecol: display a cell by its line and column coordinate. By example linecol 0,0 <=> cell 0 and linecol 'lastline','lastcol' <=> cell 'lastcellindex'.
-find: Display the line where the string is found (may be a regex).
-cfind: Display the cells where the string is found.
-read : if a filename is provided then load a new file and set it as the current file else update the current file if there is.
-transpose: transpose the matrix represented by the csv.
-write: save the file.
-set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
+  std::cout << parse_underline(R"EOF(Available commands are :
+_help: display this message
+_info: display various informations on the current file
+_line: display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of line in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of lines.
+_cell: Behave like the 'line' command but for cells.
+_lin_col: display a cell by its line and column coordinate. By example lincol 0,0 <=> cell 0 and lincol 'lastline','lastcol' <=> cell 'lastcellindex'.
+_find: Display the line where the string is found (may be a regex).
+_cfind: Display the cells where the string is found.
+_read : if a filename is provided then load a new file and set it as the current file else update the current file if there is.
+_t_ranspose: transpose the matrix represented by the csv.
+_write: save the file.
+_set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
+_var: without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.
 !: execute a command in the current shell.
-exit/quit/x/q: leave interactive mode.
-)EOF";
+e_xit/_quit: leave interactive mode.
+)EOF");
 }
 
 #define RETURN_IF_NO_LOADED_FILE  if (csvs.size() == 0) { std::cout << "No file loaded" << std::endl; return; }
@@ -83,38 +105,80 @@ void set() {
 
 }
 
-std::string get_fmt(std::string name, char value) {
+std::string get_str_var(std::string name, char value) {
   name += '=';
   if (std::isprint(value)) name += "'"+std::string(1, value)+"'";
   name += " ("+std::to_string((int)value)+")";
   return name;
 }
 
+std::string get_bool_var(std::string name, char value) {
+  return "mem="+std::string(value ? "true" : "false");
+}
+
+std::string get_fmts(csv::file cf) {
+  return
+    "in_mem"+std::string(cf.is_in_mem() ? "true" : "false") + ", " +
+    get_str_var("cell_sep", cf.cell_separator) + ", " +
+    get_str_var("str_delim", cf.string_delimiter) + ", " +
+    get_str_var("eol", cf.end_of_line) + ", " +
+    get_str_var("esc", cf.escape);
+}
+
+
 void info() {
   RETURN_IF_NO_LOADED_FILE;
 
   std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
-  std::cout << 
-    get_fmt("cell_sep", csvs[curr_csv_idx].cell_separator) << ", " <<
-    get_fmt("str_delim", csvs[curr_csv_idx].string_delimiter) << ", " <<
-    get_fmt("eol", csvs[curr_csv_idx].end_of_line) << ", " <<
-    get_fmt("esc", csvs[curr_csv_idx].escape) <<
-  std::endl;
+  std::cout << get_fmts(csvs[curr_csv_idx]) << std::endl;
 
   csvs[curr_csv_idx].stat(string_to_bool(cmd_parm));
 }
 
+// Expect a line of the form var=value
+
+bool g_in_mem=true, g_csv=true;
+char g_sep=';', g_dlm='\0', g_eol='\n', g_esc='\\';
 void fmt() {
+  if (cmd_parm == "") {
+    std::cout <<
+      get_bool_var("mem=", g_in_memory) + ", " +
+      get_bool_var("csv=", g_csv) + ", " +
+      get_str_var("sep", g_sep) + ", " +
+      get_str_var("dlm", g_dlm) + ", " +
+      get_str_var("eol", g_eol) + ", " +
+      get_str_var("esc", g_esc);
+    std::cout << std::endl << "Variable 'mem' and 'csv' expect a boolean value (true/false, on/off, 1/0) and the other a character or an ascii code value (0-255)." << std::endl;
+  } else {
+    std::string var, val;
+    std::vector<std::string> v=split(cmd_parm, '=');
+
+    trim(v[0]);
+    trim(v[1]);
+         if (v[0] == "sep") g_sep=string_to_ascii(v[1]);
+    else if (v[0] == "dlm") g_dlm=string_to_ascii(v[1]);
+    else if (v[0] == "eol") g_eol=string_to_ascii(v[1]);
+    else if (v[0] == "esc") g_esc=string_to_ascii(v[1]);
+    else if (v[0] == "mem") g_in_memory=string_to_bool(v[1]);
+    else if (v[0] == "csv") g_csv=string_to_bool(v[1]);
+    else std::cout << "Unknown variable " << v[0] << std::endl;
+  }
 }
 
 void read() {
   if (cmd_parm == "") {
     RETURN_IF_NO_LOADED_FILE;
-    csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), in_memory); 
+    csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), g_in_memory); 
   } else {
     csv::file cf;
 
-    if (cf.load(cmd_parm, in_memory)) {
+    cf.is_csv=g_csv;
+    cf.cell_separator=g_sep;
+    cf.string_delimiter=g_dlm;
+    cf.end_of_line=g_eol;
+    cf.escape=g_esc;
+
+    if (cf.load(cmd_parm, g_in_memory)) {
       csvs.push_back(cf);
       curr_csv_idx=csvs.size()-1;
     }
@@ -173,24 +237,39 @@ void write () {
 
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
-  { "help",      help   },  { "h",    help   },
-  { "info",      info   },  { "inf",  info   }, { "i", info }, { "stat", info },
-  { "line",      row    },  { "l",    row    },
-  { "cell",      cell   },  { "c",    cell   },
-  { "lincol",    lincol },  { "lc",   lincol },
+  { "help",      help   }, { "h",    help   },
+  { "info",      info   }, { "inf",  info   }, { "i", info }, { "stat", info },
+  { "line",      row    }, { "l",    row    },
+  { "cell",      cell   }, { "c",    cell   },
+  { "lincol",    lincol }, { "lc",   lincol },
   { "xy",        xy     },
-  { "find",      find   },  { "f",    find   },
-  { "transpose", transp },  { "tr",   transp },
-  { "read",      read   },  { "r",    read   },
-  { "write",     write  },  { "w",    write  },
-  { "set",       set    },  { "s",    set    },
-  { "fmt",       fmt    },
-  { "quit",      quit   },  { "exit", quit   }, { "q", quit }, { "x", quit },
+  { "find",      find   }, { "f",    find   },
+  { "transpose", transp }, { "tr",   transp },
+  { "read",      read   }, { "r",    read   },
+  { "write",     write  }, { "w",    write  },
+  { "set",       set    }, { "s",    set    },
+  { "var",       fmt    }, { "v",    fmt    },
+  { "quit",      quit   }, { "exit", quit   }, { "q", quit }, { "x", quit },
   { "!", []() { std::system(cmd_parm.c_str()); } },
 };
 
+#ifdef _WIN32
+bool EnableVTMode()
+{
+  // Set output mode to handle virtual terminal sequences
+  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (hOut == INVALID_HANDLE_VALUE) return false;
+  DWORD dwMode = 0;
+  if (!GetConsoleMode(hOut, &dwMode)) return false;
+  dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  if (!SetConsoleMode(hOut, dwMode)) return false;
+  return true;
+}
+#endif
+
+
 void inter(csv::file _cf, bool _in_memory) {
-  in_memory=_in_memory;
+  g_in_memory=_in_memory;
 
   if (_cf.get_filename() != "") csvs.push_back(_cf);
   std::string ln, prompt="> ";
@@ -199,6 +278,8 @@ void inter(csv::file _cf, bool _in_memory) {
 
 #ifdef _WIN32
   SetConsoleOutputCP(CP_UTF8);
+  EnableVTMode();
+//  SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT  | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN | ENABLE_VIRTUAL_TERMINAL_INPUT);
 #endif
   std::cout << prompt << std::flush;
 
