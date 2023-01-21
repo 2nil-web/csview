@@ -70,6 +70,7 @@ char string_to_ascii(std::string s) {
   if (s.size() == 1) return s[0];
   if (all_of_ctype(s, isdigit)) return (char)std::stoi(s);
   std::cout << "Undefined character or ascii code, returning space" << std::endl;
+  return ' ';
 }
 
 bool string_to_bool(std::string s) {

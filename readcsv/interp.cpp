@@ -113,7 +113,7 @@ std::string get_str_var(std::string name, char value) {
 }
 
 std::string get_bool_var(std::string name, char value) {
-  return "mem="+std::string(value ? "true" : "false");
+  return name+"="+std::string(value ? "true" : "false");
 }
 
 std::string get_fmts(csv::file cf) {
@@ -142,8 +142,8 @@ char g_sep=';', g_dlm='\0', g_eol='\n', g_esc='\\';
 void fmt() {
   if (cmd_parm == "") {
     std::cout <<
-      get_bool_var("mem=", g_in_memory) + ", " +
-      get_bool_var("csv=", g_csv) + ", " +
+      get_bool_var("mem", g_in_memory) + ", " +
+      get_bool_var("csv", g_csv) + ", " +
       get_str_var("sep", g_sep) + ", " +
       get_str_var("dlm", g_dlm) + ", " +
       get_str_var("eol", g_eol) + ", " +
