@@ -20,15 +20,14 @@ void help() {
   std::cout << R"EOF(Available commands are :
 help: display this message
 info: display various informations on the current file
-row: display rows of the current file. Without parameters it will display all the rows, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of row in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of rows.
-cell: Behave like the 'row' command but for cells.
-rowcol: display a cell by its row and column coordinate. By example rowcol 0,0 <=> cell 0 and rowcol 'lastrow','lastcol' <=> cell 'lastcellindex'.
-find: Display the row where the string is found (may be a regex).
+line: display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form "r1-r2" or a list of line in the form "r1 r2 r3 ...". Rows indexes start to 1 and end to maximum number of lines.
+cell: Behave like the 'line' command but for cells.
+linecol: display a cell by its line and column coordinate. By example linecol 0,0 <=> cell 0 and linecol 'lastline','lastcol' <=> cell 'lastcellindex'.
+find: Display the line where the string is found (may be a regex).
 cfind: Display the cells where the string is found.
-load filename: load a new file and set it as the current file.
-rload: reload the current file. This might be useful if the file has been modified.
+read : if a filename is provided then load a new file and set it as the current file else update the current file if there is.
 transpose: transpose the matrix represented by the csv.
-save: save the file.
+write: save the file.
 set: without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.
 !: execute a command in the current shell.
 exit/quit/x/q: leave interactive mode.
@@ -108,18 +107,18 @@ void info() {
 void fmt() {
 }
 
-void load() {
-  csv::file cf;
+void read() {
+  if (cmd_parm == "") {
+    RETURN_IF_NO_LOADED_FILE;
+    csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), in_memory); 
+  } else {
+    csv::file cf;
 
-  if (cf.load(cmd_parm, in_memory)) {
-    csvs.push_back(cf);
-    curr_csv_idx=csvs.size()-1;
+    if (cf.load(cmd_parm, in_memory)) {
+      csvs.push_back(cf);
+      curr_csv_idx=csvs.size()-1;
+    }
   }
-}
-
-void rload() {
-  RETURN_IF_NO_LOADED_FILE;
-  csvs[curr_csv_idx].load(cmd_parm, in_memory); 
 }
 
 void quit () {
@@ -131,7 +130,7 @@ void find () {
   csvs[curr_csv_idx].find(cmd_parm);
 }
 
-void rwcol () {
+void lincol () {
   RETURN_IF_NO_LOADED_FILE;
 
   uintmax_t r, c;
@@ -145,13 +144,28 @@ void rwcol () {
   }
 }
 
+
+void xy () {
+  RETURN_IF_NO_LOADED_FILE;
+
+  uintmax_t r, c;
+  if (csvs[curr_csv_idx].parse_coord(cmd_parm, r, c)) {
+    std::string s;
+    if (csvs[curr_csv_idx].get_cell_by_rc(c, r, s)) {
+      std::cout << c << ',' << r << ": " << s << std::endl;
+    } else {
+      std::cout << "Bad coordinate " << cmd_parm << ',' << c << std::endl;
+    }
+  }
+}
+
 void transp () {
   RETURN_IF_NO_LOADED_FILE;
 
   csvs[curr_csv_idx].transpose();
 }
 
-void save () {
+void write () {
   RETURN_IF_NO_LOADED_FILE;
 
   csvs[curr_csv_idx].save_from_memory();
@@ -159,19 +173,19 @@ void save () {
 
 
 std::map<std::string, std::function<void()>> cmd_funcs = {
-  { "help",   help  },  { "h",    help  },
-  { "info",   info  },  { "inf",  info  }, { "i", info }, { "stat", info },
-  { "row",    row   },  { "r",    row   },
-  { "cell",   cell  },  { "c",    cell  },
-  { "rowcol", rwcol },  { "rc",   rwcol },
-  { "find",   find  },  { "f",    find  },
-  { "transpose", transp },  { "tr", transp },
-  { "load",   load  },  { "l",    load  },
-  { "save",   save  },  { "sv",    save  },
-  { "reload", rload },  { "rl",   rload },
-  { "set",    set   },  { "s",    set   },
-  { "fmt",    fmt   },
-  { "quit",   quit  },  { "exit", quit  }, { "q", quit }, { "x", quit },
+  { "help",      help   },  { "h",    help   },
+  { "info",      info   },  { "inf",  info   }, { "i", info }, { "stat", info },
+  { "line",      row    },  { "l",    row    },
+  { "cell",      cell   },  { "c",    cell   },
+  { "lincol",    lincol },  { "lc",   lincol },
+  { "xy",        xy     },
+  { "find",      find   },  { "f",    find   },
+  { "transpose", transp },  { "tr",   transp },
+  { "read",      read   },  { "r",    read   },
+  { "write",     write  },  { "w",    write  },
+  { "set",       set    },  { "s",    set    },
+  { "fmt",       fmt    },
+  { "quit",      quit   },  { "exit", quit   }, { "q", quit }, { "x", quit },
   { "!", []() { std::system(cmd_parm.c_str()); } },
 };
 
@@ -180,13 +194,13 @@ void inter(csv::file _cf, bool _in_memory) {
 
   if (_cf.get_filename() != "") csvs.push_back(_cf);
   std::string ln, prompt="> ";
-  std::cout << prompt << std::flush;
   std::string cmd;
   std::string::size_type pos;
 
 #ifdef _WIN32
   SetConsoleOutputCP(CP_UTF8);
 #endif
+  std::cout << prompt << std::flush;
 
   while (std::getline(std::cin, ln)) {
     trim(ln);
@@ -209,7 +223,10 @@ void inter(csv::file _cf, bool _in_memory) {
     }
 
     if (cmd_funcs.contains(cmd)) cmd_funcs.at(cmd)();
-    else if (ln != "" && any_of_ctype(ln, isgraph)) std::cerr << "Unknown command ["<< cmd << ']' << std::endl;
+    else if (ln != "" && any_of_ctype(ln, isgraph)) {
+      std::cout << "Unknown command ["<< cmd << ']' << std::endl;
+    }
+
     std::cout << prompt << std::flush;
   }
 }

@@ -38,7 +38,7 @@ UPX=upx
 
 PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
-SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp
+SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp mygetopt.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=${PREFIX}${EXEXT}
 
@@ -80,6 +80,21 @@ rclean :
 	rm -f *~ *.d *.o $(OBJS) $(TARGET) *.exe
 	rm -rf x64
 
+
+# Génération du version.h intégré dans l'appli
+version.h : version_check.txt
+	@echo "Building C++ header $@"
+	@echo "const std::string name=\"${PREFIX}\", version=\"${VERSION}\", decoration=\"${DECORATION}\", commit=\"${COMMIT}\", created_at=\"${ISO8601}\";" >$@
+
+# Génération du version.json intégré dans le paquetage
+version.json : version_check.txt
+	@echo "Building json file $@"
+	@echo '{ "name":"${PREFIX}", "version":"${VERSION}", "decoration":"${DECORATION}", "commit":"${COMMIT}","created_at":"${ISO8601}" }' >$@
+
+# Pour regénérer version.h et version.json dès qu'un des champs version ou decoration ou commit, est modifié.
+version_check.txt : FORCE
+	@echo "Version:${VERSION}, decoration:${DECORATION}, commit:${COMMIT}" >new_$@
+	@if diff new_$@ $@ >/dev/null 2>&1; then rm -f new_$@; else mv -f new_$@ $@; rm -f ${PREFIX}.iss ${PREFIX}-standalone.iss; fi
 
 # Ces régles implicites ne sont pas utiles quand on fait 'make rclean' (voir même make clean ...)
 ifneq ($(MAKECMDGOALS),rclean)

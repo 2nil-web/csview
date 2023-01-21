@@ -442,8 +442,9 @@ void csv::file::list_row(std::uintmax_t r) { list_row(r, r); }
 void csv::file::list_row() {
   if (rows.size() > 1000) {
     std::string rep;
-    std::cout << "You are about to display more than a thousand rows. Do you want to proceed ? (y/n)" << std::endl;
-    std::cin >> rep;
+    std::cout << "You are about to display more than a thousand rows. Do you want to proceed ? (y/N)";// << std::endl;
+    std::getline(std::cin, rep);
+    trim(rep);
     if (rep != "y") return;
   }
 
