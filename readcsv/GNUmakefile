@@ -40,7 +40,7 @@ PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
 SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp mygetopt.cpp
 OBJS=$(SRCS:.cpp=.o)
-TARGET=${PREFIX}${EXEXT}
+TARGET=${PREFIX}${EXEXT} args${EXEXT}
 
 
 all : ${TARGET}
@@ -52,6 +52,8 @@ ${TARGET} : ${SRCS}
 	${MSBUILD} ${PREFIX}.sln -p:Configuration=Release
 	cp x64/Release/${TARGET} .
 endif
+
+args${EXEXT} : args.o mygetopt.o
 
 strip : $(TARGET)
 	@file ${TARGET} | grep stripped >/dev/null || ( $(STRIP) $(TARGET) && echo "Strip OK" )
