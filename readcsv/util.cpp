@@ -1,7 +1,9 @@
 
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <string>
+#include <vector>
 #include <chrono>
 #include <algorithm>
 #include <functional>

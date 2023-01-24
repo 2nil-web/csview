@@ -40,10 +40,10 @@ PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
 SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp mygetopt.cpp
 OBJS=$(SRCS:.cpp=.o)
-TARGET=${PREFIX}${EXEXT} args${EXEXT}
+TARGET=${PREFIX}${EXEXT}
 
 
-all : ${TARGET}
+all : ${TARGET} args${EXEXT}
 
 ifeq ($(MSBUILD),)
 ${TARGET} : ${OBJS}
