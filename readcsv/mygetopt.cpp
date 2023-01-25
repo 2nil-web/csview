@@ -197,11 +197,11 @@ void set_options () {
 }
 
 // Add arg with val and name if not already exists, return true if done else false.
-bool insert_arg_if_missing(const std::string help, const std::string name, const char val, int has_a=no_argument, OptFunc func=nullptr) {
+bool insert_arg_if_missing(const std::string help, const std::string name, const char val, int oi_mode, int has_a=no_argument, OptFunc func=nullptr) {
   // Do nothing if val or name already exist
   if (index_from_val(val) > n_opt && index_from_name(name) > n_opt) {
 //    std::cout << "Adding " << name << std::endl;
-    myOptions.insert(myOptions.begin(), { help, name, val, has_a, func });
+    myOptions.insert(myOptions.begin(), { name, val, oi_mode, has_a, help, func });
     n_opt++;
     return true;
   }
@@ -220,8 +220,8 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
   }
 
   // Try to insert --help and --version if not already done
-  insert_arg_if_missing("display version information and exit.", "version", 'V', no_argument, getVersion);
-  insert_arg_if_missing("print this message and exit.", "help", 'h', no_argument, getUsage);
+  insert_arg_if_missing("display version information and exit.", "version", 'V', 0, no_argument, getVersion);
+  insert_arg_if_missing("print this message and exit.", "help", 'h', 0, no_argument, getUsage);
 
 //  for (auto vo:myOptions) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 

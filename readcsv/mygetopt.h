@@ -9,12 +9,17 @@
 typedef std::function<void(char c, std::string, std::string)> OptFunc;
 //typedef [](char c, std::string name, std::string val)->void LambdaOptFunc;
 
+enum io_mode { OPTION_INTERP=0, OPTION=1, INTERP=2 };
+#define opt_itrp 0
+#define opt      1
+#define itrp     2
 
 struct my_option {
-  std::string help;
   std::string name;
   char val;
+  int oi_mode;
   int has_arg;
+  std::string help;
   std::function<void(char c, std::string, std::string)> func;
   //void (*func) (char c, std::string, std::string);
 };
