@@ -53,7 +53,7 @@ ${TARGET} : ${SRCS}
 	cp x64/Release/${TARGET} .
 endif
 
-args${EXEXT} : args.o mygetopt.o
+args${EXEXT} : args.o mygetopt.o util.o
 
 strip : $(TARGET)
 	@file ${TARGET} | grep stripped >/dev/null || ( $(STRIP) $(TARGET) && echo "Strip OK" )

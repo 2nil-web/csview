@@ -22,6 +22,11 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+#include "util.h"
 #include "mygetopt.h"
 
 // name, has_arg, val, help
@@ -30,6 +35,8 @@ size_t n_opt=0, longest_opname=0;
 static struct option *long_options=NULL;
 static std::vector<my_option> myOptions;
 std::string optstr="";
+bool interp_on=true, no_quit=false;
+
 
 size_t index_from_val (char v) {
   for (size_t i=0; i < n_opt; i++) {
@@ -127,7 +134,7 @@ void usage(std::ostream& out) {
     //if (o.has_arg == a_comment) out << o.help << std::endl;
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
       out << o.help << std::endl;
-    } else {
+    } else if ((interp_on && o.oi_mode != opt_only) || (!interp_on && o.oi_mode == opt_only)) {
       if (o.val == 0) out << "   ";
       else out << '-' << o.val << ",";
       std::string hlp=o.help;
@@ -138,22 +145,20 @@ void usage(std::ostream& out) {
 }
 
 void getUsage(char , std::string , std::string ) {
+//  if (!no_quit) interp_on=false;
   usage();
-  exit(EXIT_SUCCESS);
+  if (!interp_on) exit(EXIT_SUCCESS);
 }
 
 void getVersion(char , std::string , std::string ) {
+//  if (!no_quit) interp_on=false;
   std::string ppath=progpath;
   if (ppath.size() > 0) ppath[0]=toupper(ppath[0]);
-
-//  std::cout << ppath << ' ' << version << std::endl;
-//  std::cout << "Build for " << getBuild() << std::endl;
-//  if (copyright.size() > 0) std::cout << "Copyright " << copyright << std::endl;
 
   std::cout << ppath << ' ' << version << ", build for " << getBuild();
   if (copyright.size() > 0) std::cout << ", " << copyright << std::endl;
 
-  exit(EXIT_SUCCESS);
+  if (!interp_on) exit(EXIT_SUCCESS);
 }
 
 void set_options () {
@@ -197,7 +202,8 @@ void set_options () {
 }
 
 // Add arg with val and name if not already exists, return true if done else false.
-bool insert_arg_if_missing(const std::string help, const std::string name, const char val, int oi_mode, int has_a=no_argument, OptFunc func=nullptr) {
+bool insert_arg_if_missing(const std::string name, const char val, int oi_mode, int has_a=no_argument, const std::string help="", OptFunc func=nullptr) {
+  //std::cout << "insert_arg_if_missing, name " << name << std::endl;
   // Do nothing if val or name already exist
   if (index_from_val(val) > n_opt && index_from_name(name) > n_opt) {
 //    std::cout << "Adding " << name << std::endl;
@@ -207,6 +213,76 @@ bool insert_arg_if_missing(const std::string help, const std::string name, const
   }
 
   return false;
+}
+
+#ifdef _WIN32
+bool EnableVTMode()
+{
+  // Set output mode to handle virtual terminal sequences
+  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+  if (hOut == INVALID_HANDLE_VALUE) return false;
+  DWORD dwMode = 0;
+  if (!GetConsoleMode(hOut, &dwMode)) return false;
+  dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+  if (!SetConsoleMode(hOut, dwMode)) return false;
+  return true;
+}
+#endif
+
+bool interp () {
+  if (!interp_on) return false;
+
+  std::string ln, prompt="> ";
+  std::string cmd, param;
+  std::string::size_type pos;
+  bool found_cmd;
+
+#ifdef _WIN32
+  SetConsoleOutputCP(CP_UTF8);
+  EnableVTMode();
+#endif
+  std::cout << prompt << std::flush;
+
+  no_quit=true;
+  while (no_quit && std::getline(std::cin, ln)) {
+    trim(ln);
+
+    // Cas particulier du ! qui n'a pas forcément besoin d'espace après ses paramétres
+    if (ln[0] == '!') {
+      cmd="!";
+      param=ln.substr(1);
+      trim(param);
+    } else {
+      pos=ln.find_first_of(' ');
+
+      if (pos == std::string::npos) {
+        cmd=ln;
+        param="";
+      } else {
+        cmd=ln.substr(0, pos);
+        param=ln.substr(pos);
+        trim(param);
+      }
+    }
+
+    found_cmd=false;
+    for(auto myopt:myOptions) {
+      if (myopt.oi_mode != opt_only && (myopt.name == cmd || (cmd.size() == 1 && myopt.val == cmd[0]))) {
+        found_cmd=true;
+        myopt.func(myopt.val, myopt.name, param);
+      }
+    }
+
+    if (!found_cmd && ln != "" && any_of_ctype(ln, isgraph)) {
+      std::cout << "Unknown command "<< cmd;
+      if (param.size() > 0) std::cout << ", with parameter(s) " << '[' << param <<']';
+      std::cout << std::endl;
+    }
+
+    if (no_quit) std::cout << prompt << std::flush;
+  }
+
+  return true;
 }
 
 void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
@@ -220,9 +296,10 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
   }
 
   // Try to insert --help and --version if not already done
-  insert_arg_if_missing("display version information and exit.", "version", 'V', 0, no_argument, getVersion);
-  insert_arg_if_missing("print this message and exit.", "help", 'h', 0, no_argument, getUsage);
-
+  insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
+  insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
+  insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false;; });
+  insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=true;; });
 //  for (auto vo:myOptions) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
@@ -240,7 +317,7 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
 
     if (c == '?') {
       usage(std::cerr);
-      exit(ENOTSUP);
+      if (!interp_on) exit(ENOTSUP);
     } else {
       idx=index_from_val(c);
 
@@ -255,7 +332,7 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
             if (oarg == "" || (oarg[0] == '-' && oarg[1] != 0)) {
               std::cerr << "Missing argument for option -" << myOptions[idx].val << "/--" << myOptions[idx].name << ")" << std::endl;
               usage(std::cerr);
-              exit(ENOTSUP);
+              if (!interp_on) exit(ENOTSUP);
             }
             break;
           case optional_argument:
