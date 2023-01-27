@@ -71,7 +71,7 @@ std::vector<my_option> my_options = {
   { "xy",        'x', opt_itr, required_argument, "display a cell by its column (x) and line (y) coordinate.", xy },
   { "find",      'f', opt_itr, required_argument, "display the line where the string is found (may be a regex).", find },
   { "transpose", 't', opt_itr, no_argument,       "transpose the matrix represented by the csv.", transpose },
-  { "tr",       '\0', opt_itr, no_argument,       "shortcut for option transpose", transpose },
+  { "tr",       '\0', opt_itr, no_argument,       "another shortcut for option transpose", transpose },
   { "read",      'r', opt_itr, optional_argument, "if a filename is provided then load a new file and set it as the current file else update the current file if there is.", read },
   { "write",     'w', opt_itr, no_argument,       "save the current file, if there is.", write },
   { "set",       's', opt_itr, optional_argument, "without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.", set },
