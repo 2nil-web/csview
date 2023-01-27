@@ -35,7 +35,7 @@ size_t n_opt=0, longest_opname=0;
 static struct option *long_options=NULL;
 static std::vector<my_option> myOptions;
 std::string optstr="";
-bool interp_on=true, no_quit=false;
+bool interp_on=true, quiet=false, no_quit=false;
 
 
 size_t index_from_val (char v) {
@@ -126,7 +126,8 @@ std::string intro="";
 std::string version="1.0.0";
 std::string copyright="";
 void usage(std::ostream& out) {
-  out << "Usage: " << progpath << " [OPTIONS] ARGUMENT" << std::endl;
+  if (interp_on) out << "Available commands" << std::endl;
+  else out << "Usage: " << progpath << " [OPTIONS] ARGUMENT" << std::endl;
   out << intro << std::endl;
   size_t rion=longest_opname+3;
 
@@ -134,7 +135,13 @@ void usage(std::ostream& out) {
     //if (o.has_arg == a_comment) out << o.help << std::endl;
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
       out << o.help << std::endl;
-    } else if ((interp_on && o.oi_mode != opt_only) || (!interp_on && o.oi_mode == opt_only)) {
+    } else if (interp_on && (o.oi_mode == opt_itr || o.oi_mode == itr_only)) {
+      std::string hlp=o.help;
+      if (hlp.size() > 0) hlp[0]=tolower(hlp[0]);
+      out.width(rion); out << std::left << o.name;
+      if (isprint(o.val)) out << "(" << o.val << ") ";
+      std::cout << hlp << std::endl;
+    } else if (!interp_on && (o.oi_mode == opt_itr || o.oi_mode == opt_only)) {
       if (o.val == 0) out << "   ";
       else out << '-' << o.val << ",";
       std::string hlp=o.help;
@@ -150,7 +157,7 @@ void getUsage(char , std::string , std::string ) {
   if (!interp_on) exit(EXIT_SUCCESS);
 }
 
-void getVersion(char , std::string , std::string ) {
+void getVersion(char ='\0', std::string ="", std::string ="") {
 //  if (!no_quit) interp_on=false;
   std::string ppath=progpath;
   if (ppath.size() > 0) ppath[0]=toupper(ppath[0]);
@@ -232,6 +239,8 @@ bool EnableVTMode()
 bool interp () {
   if (!interp_on) return false;
 
+  if (!quiet) getVersion();
+
   std::string ln, prompt="> ";
   std::string cmd, param;
   std::string::size_type pos;
@@ -296,10 +305,11 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
   }
 
   // Try to insert --help and --version if not already done
+  insert_arg_if_missing("quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
+  insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
+  insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=true; });
   insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
   insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
-  insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false;; });
-  insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=true;; });
 //  for (auto vo:myOptions) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
