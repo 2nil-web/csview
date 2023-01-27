@@ -253,7 +253,7 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
   { "!", []() { std::system(cmd_parm.c_str()); } },
 };
 
-#ifdef _WIN32
+#ifdef _WIN32_NO_USE
 bool EnableVTMode()
 {
   // Set output mode to handle virtual terminal sequences
@@ -276,7 +276,7 @@ void inter(csv::file _cf, bool _in_memory) {
   std::string cmd;
   std::string::size_type pos;
 
-#ifdef _WIN32
+#ifdef _WIN32_NO_USE
   SetConsoleOutputCP(CP_UTF8);
   EnableVTMode();
 //  SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_PROCESSED_OUTPUT  | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN | ENABLE_VIRTUAL_TERMINAL_INPUT);

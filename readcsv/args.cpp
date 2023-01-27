@@ -8,53 +8,117 @@
 #include <vector>
 #include <functional>
 
+#include "util.h"
 #include "mygetopt.h"
+#include "readcsv.h"
+#include "interp.h"
 
 
 #define OptHead std::cout<<"Short command "<<c<<", command: "<<name<<", parameter ["<<param<<']'<<std::endl
+#define RETURN_IF_NO_LOADED_FILE  if (csvs.size() == 0) { std::cout << "No file loaded" << std::endl; return; }
+
+bool g_in_memory=true;
+std::vector<csv::file> csvs;
+size_t curr_csv_idx=0;
+bool g_in_mem=true, g_csv=true;
+char g_sep=';', g_dlm='\0', g_eol='\n', g_esc='\\';
+
+std::string get_str_var(std::string name, char value) {
+  name += '=';
+  if (std::isprint(value)) name += "'"+std::string(1, value)+"'";
+  name += " ("+std::to_string((int)value)+")";
+  return name;
+}
+
+std::string get_bool_var(std::string name, char value) {
+  return name+"="+std::string(value ? "true" : "false");
+}
+
+std::string get_fmts(csv::file cf) {
+  return
+    "in_mem"+std::string(cf.is_in_mem() ? "true" : "false") + ", " +
+    get_str_var("cell_sep", cf.cell_separator) + ", " +
+    get_str_var("str_delim", cf.string_delimiter) + ", " +
+    get_str_var("eol", cf.end_of_line) + ", " +
+    get_str_var("esc", cf.escape);
+}
 
 void info(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
+  RETURN_IF_NO_LOADED_FILE;
+
+  std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
+  std::cout << get_fmts(csvs[curr_csv_idx]) << std::endl;
+
+  csvs[curr_csv_idx].stat(string_to_bool(param));
 }
 
 void row(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void cell(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void linecolumn(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void xy(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void find(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void transpose(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void read(char c, std::string name, std::string param) {
   OptHead;
+
+  if (param == "") {
+    RETURN_IF_NO_LOADED_FILE;
+    csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), g_in_memory); 
+  } else {
+    csv::file cf;
+
+    cf.is_csv=g_csv;
+    cf.cell_separator=g_sep;
+    cf.string_delimiter=g_dlm;
+    cf.end_of_line=g_eol;
+    cf.escape=g_esc;
+
+    if (cf.load(param, g_in_memory)) {
+      csvs.push_back(cf);
+      curr_csv_idx=csvs.size()-1;
+    }
+  }
 }
 
 void write(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void set(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void fmt(char c, std::string name, std::string param) {
   OptHead;
+  RETURN_IF_NO_LOADED_FILE;
 }
 
 void quit(char, std::string, std::string) {
@@ -94,10 +158,6 @@ std::vector<my_option> my_options = {
 
 int main(int argc, char **argv, char **) {
   getopt_init(argc, argv, my_options, "Command line viewer and handler for csv or text file.", "0.1.0", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
-
-//  for(auto myopt:my_options) {
-//    std::cout << "name " << myopt.name << ", val " << myopt.val << ", oi_mode " << myopt.oi_mode << ", has_arg " << myopt.has_arg << ", help " << myopt.help << std::endl;
-//  }
 
   if (!interp() && argc < 2) {
     std::cerr << "Missing parameters. ";

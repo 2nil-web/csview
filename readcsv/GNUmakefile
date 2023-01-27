@@ -38,7 +38,7 @@ UPX=upx
 
 PREFIX=readcsv
 #SRCS=$(wildcard *.cpp)
-SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp mygetopt.cpp
+SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp #mygetopt.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=${PREFIX}${EXEXT}
 
@@ -53,7 +53,7 @@ ${TARGET} : ${SRCS}
 	cp x64/Release/${TARGET} .
 endif
 
-args${EXEXT} : args.o mygetopt.o util.o
+args${EXEXT} : args.o readcsv.o mygetopt.o util.o
 
 strip : $(TARGET)
 	@file ${TARGET} | grep stripped >/dev/null || ( $(STRIP) $(TARGET) && echo "Strip OK" )
