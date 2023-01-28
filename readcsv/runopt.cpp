@@ -22,9 +22,9 @@
 #include <fstream>
 #include <iostream>
 
+bool open_console() {
 #ifdef _WIN32
 #include <windows.h>
-void open_console() {
   static bool console_not_opened=true;
 
   if (console_not_opened) {
@@ -32,21 +32,20 @@ void open_console() {
     // Set output mode to handle virtual terminal sequences
     HANDLE hOut=GetStdHandle(STD_OUTPUT_HANDLE);
 
-    if (hOut == INVALID_HANDLE_VALUE) {
-        DWORD dwMode=0;
+    if (hOut == INVALID_HANDLE_VALUE) return false;
+    DWORD dwMode=0;
 
-        if (!GetConsoleMode(hOut, &dwMode)) {
-        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        SetConsoleMode(hOut, dwMode);
-      }
-    }
-
+    if (!GetConsoleMode(hOut, &dwMode)) return false;
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    SetConsoleMode(hOut, dwMode);
     console_not_opened=false;
   }
-}
+
+  return true;
 #else
-void open_console() { }
+  console_not_opened=false;
 #endif
+}
 
 
 #include "util.h"
@@ -144,8 +143,8 @@ std::string getBuild() {
   #endif
 }
 
-std::string parse_vt(std::string s) {
-  std::string ret="";
+std::string parse_vt(std::string& s) {
+  std::string ret="", s2="";
   bool close_ul=false;
 
   for(auto c:s) {
@@ -154,6 +153,7 @@ std::string parse_vt(std::string s) {
       close_ul=true;
     } else {
       ret+=c;
+      s2+=c;
 
       if (close_ul) {
         ret+="\033[0m";
@@ -162,8 +162,11 @@ std::string parse_vt(std::string s) {
     }
   }
 
+  s=s2;
   return ret;
 }
+
+
 
 std::string progpath="";
 std::string intro="";
@@ -182,15 +185,19 @@ void usage(std::ostream& out) {
 
   for (auto o:my_ropts) {
     std::string uname;
-    uname=parse_vt(o.name);
-    //uname=o.name;
+    if (open_console()) uname=parse_vt(o.name);
+    else uname=o.name;
+
+    std::string spc="";
+    spc.append(rion-o.name.size(), ' ');
 
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
       out << o.help << std::endl;
     } else if (interp_on && (o.oi_mode == opt_itr || o.oi_mode == itr_only)) {
       std::string hlp=o.help;
       if (hlp.size() > 0) hlp[0]=tolower(hlp[0]);
-      out.width(rion); out << std::left << uname;
+      //out.width(rion); out << std::left << uname;
+      out << uname << spc;
       if (isprint(o.val)) out << "(" << o.val << ") ";
       else out << "   ";
       out << hlp << std::endl;
@@ -199,7 +206,8 @@ void usage(std::ostream& out) {
       else out << '-' << o.val << ",";
       std::string hlp=o.help;
       if (hlp.size() > 0) hlp[0]=toupper(hlp[0]);
-      out.width(rion); out << std::left << " --"+uname << hlp << std::endl;
+      //out.width(rion); out << std::left << " --"+uname << hlp << std::endl;
+      out << " --"+uname+spc << hlp << std::endl;
     }
   }
 }
