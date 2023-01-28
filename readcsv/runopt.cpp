@@ -27,7 +27,7 @@
 #endif
 
 #include "util.h"
-#include "mygetopt.h"
+#include "runopt.h"
 
 // name, has_arg, val, help
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.

@@ -9,7 +9,7 @@
 #include <functional>
 
 #include "util.h"
-#include "mygetopt.h"
+#include "runopt.h"
 #include "readcsv.h"
 #include "interp.h"
 
@@ -43,9 +43,7 @@ std::string get_fmts(csv::file cf) {
     get_str_var("esc", cf.escape);
 }
 
-void info(char c, std::string name, std::string param) {
-  OptHead;
-  RETURN_IF_NO_LOADED_FILE;
+void info(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
 
   std::cout << csvs[curr_csv_idx].get_filename() << " is" << (csvs[curr_csv_idx].is_csv?" ":" not ") << "a csv file." << std::endl;
@@ -54,38 +52,70 @@ void info(char c, std::string name, std::string param) {
   csvs[curr_csv_idx].stat(string_to_bool(param));
 }
 
-void row(char c, std::string name, std::string param) {
-  OptHead;
+void row(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  if (param == "") csvs[curr_csv_idx].list_row();
+  else {
+    std::vector<std::uintmax_t> parm;
+    if (csvs[curr_csv_idx].parse_range(param, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list_row(parm[i], parm[i+1]);
+    } else if (csvs[curr_csv_idx].parse_list(param, parm)) {
+      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list_row(parm[i]);
+    }
+  }
 }
 
-void cell(char c, std::string name, std::string param) {
-  OptHead;
+void cell(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  if (param == "") csvs[curr_csv_idx].list_cell();
+  else {
+    std::vector<std::uintmax_t> parm;
+    if (csvs[curr_csv_idx].parse_range(param, parm)) {
+      for (size_t i=0; i < parm.size(); i += 2) csvs[curr_csv_idx].list_cell(parm[i], parm[i+1]);
+    } else if (csvs[curr_csv_idx].parse_list(param, parm)) {
+      for (size_t i=0; i < parm.size(); i++) csvs[curr_csv_idx].list_cell(parm[i]);
+    }
+  }
 }
 
-void linecolumn(char c, std::string name, std::string param) {
-  OptHead;
+void linecolumn(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  uintmax_t r, c;
+  if (csvs[curr_csv_idx].parse_coord(param, r, c)) {
+    std::string s;
+    if (csvs[curr_csv_idx].get_cell_by_rc(r, c, s)) {
+      std::cout << r << ',' << c << ": " << s << std::endl;
+    } else {
+      std::cout << "Bad coordinate " << param << ',' << c << std::endl;
+    }
+  }
 }
 
-void xy(char c, std::string name, std::string param) {
-  OptHead;
+void xy(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+
+  uintmax_t r, c;
+  if (csvs[curr_csv_idx].parse_coord(param, r, c)) {
+    std::string s;
+    if (csvs[curr_csv_idx].get_cell_by_rc(c, r, s)) {
+      std::cout << c << ',' << r << ": " << s << std::endl;
+    } else {
+      std::cout << "Bad coordinate " << param << ',' << c << std::endl;
+    }
+  }
 }
 
-void find(char c, std::string name, std::string param) {
-  OptHead;
+void find(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  csvs[curr_csv_idx].find(param);
 }
 
-void transpose(char c, std::string name, std::string param) {
-  OptHead;
+void transpose(char, std::string, std::string) {
   RETURN_IF_NO_LOADED_FILE;
+  csvs[curr_csv_idx].transpose();
 }
 
-void read(char c, std::string name, std::string param) {
-  OptHead;
+void read(char, std::string, std::string param) {
 
   if (param == "") {
     RETURN_IF_NO_LOADED_FILE;
@@ -106,19 +136,53 @@ void read(char c, std::string name, std::string param) {
   }
 }
 
-void write(char c, std::string name, std::string param) {
-  OptHead;
+void write(char, std::string, std::string) {
   RETURN_IF_NO_LOADED_FILE;
+  csvs[curr_csv_idx].save_from_memory();
 }
 
-void set(char c, std::string name, std::string param) {
-  OptHead;
+void set(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  if (param == "") {
+    for(size_t i=0; i < csvs.size(); i++) {
+      if (i == curr_csv_idx) std::cout << '*';
+      else std::cout << ' ';
+      std::cout << ' ' << i+1 << ':' << csvs[i].get_filename() << std::endl;
+    }
+  } else {
+    size_t n=std::stoi(param);
+    if (n > 0 && n <= csvs.size()) {
+      curr_csv_idx=n-1;
+      std::cout << n << ':' << csvs[curr_csv_idx].get_filename() << std::endl;
+    }
+  }
 }
 
-void fmt(char c, std::string name, std::string param) {
-  OptHead;
+void fmt(char, std::string, std::string param) {
   RETURN_IF_NO_LOADED_FILE;
+  if (param == "") {
+    std::cout <<
+      get_bool_var("mem", g_in_memory) + ", " +
+      get_bool_var("csv", g_csv) + ", " +
+      get_str_var("sep", g_sep) + ", " +
+      get_str_var("dlm", g_dlm) + ", " +
+      get_str_var("eol", g_eol) + ", " +
+      get_str_var("esc", g_esc);
+    std::cout << std::endl << "Variable 'mem' and 'csv' expect a boolean value (true/false, on/off, 1/0) and the other a character or an ascii code value (0-255)." << std::endl;
+  } else {
+    std::string var, val;
+    std::vector<std::string> v=split(param, '=');
+
+    trim(v[0]);
+    trim(v[1]);
+         if (v[0] == "sep") g_sep=string_to_ascii(v[1]);
+    else if (v[0] == "dlm") g_dlm=string_to_ascii(v[1]);
+    else if (v[0] == "eol") g_eol=string_to_ascii(v[1]);
+    else if (v[0] == "esc") g_esc=string_to_ascii(v[1]);
+    else if (v[0] == "mem") g_in_memory=string_to_bool(v[1]);
+    else if (v[0] == "csv") g_csv=string_to_bool(v[1]);
+    else std::cout << "Unknown variable " << v[0] << std::endl;
+  }
 }
 
 void quit(char, std::string, std::string) {
@@ -148,11 +212,9 @@ std::vector<my_option> my_options = {
       std::system(val.c_str());
     }
   },
-
-  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
-  { "", '\0', 0, 0, "", NULL },
-
-  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
+//  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
+//  { "", '\0', 0, 0, "", NULL },
+//  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
 };
 
 

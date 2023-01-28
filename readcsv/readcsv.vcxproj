@@ -135,7 +135,7 @@
     <ClInclude Include="readcsv.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="getopt_vc\getopt.h" />
-    <ClInclude Include="mygetopt.h" />
+    <ClInclude Include="runopt.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -143,7 +143,7 @@
     <ClCompile Include="readcsv.cpp" />
     <ClCompile Include="util.cpp" />
     <ClCompile Include="getopt_vc\getopt.cpp" />
-    <ClCompile Include="mygetopt.cpp" />
+    <ClCompile Include="runopt.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
