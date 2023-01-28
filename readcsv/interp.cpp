@@ -250,7 +250,7 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
   { "set",       set    }, { "s",    set    },
   { "var",       fmt    }, { "v",    fmt    },
   { "quit",      quit   }, { "exit", quit   }, { "q", quit }, { "x", quit },
-  { "!", []() { std::system(cmd_parm.c_str()); } },
+  { "!", []() { std::system(cmd_parm.c_str()); } }
 };
 
 #ifdef _WIN32_NO_USE
