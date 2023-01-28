@@ -14,7 +14,7 @@ enum io_mode { OPTION_INTERP=0, OPTION=1, INTERP=2 };
 #define opt_only 1
 #define itr_only 2
 
-struct my_option {
+struct run_opt {
   std::string name;
   char val;
   int oi_mode;
@@ -26,7 +26,7 @@ struct my_option {
 
 bool interp ();
 void usage(std::ostream& out = std::cout);
-void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const std::string pIntro="Some introductory help message", const std::string pVersion="1.0.0", const std::string copyright="");
+void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std::string pIntro="Some introductory help message", const std::string pVersion="1.0.0", const std::string copyright="");
 
 #endif /* MY_GETOPT_H */
 

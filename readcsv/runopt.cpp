@@ -56,14 +56,14 @@ void open_console() { }
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.
 size_t n_opt=0, longest_opname=0;
 static struct option *long_options=NULL;
-static std::vector<my_option> myOptions;
+static std::vector<run_opt> my_ropts;
 std::string optstr="";
 bool arg_sel=true, interp_on=true, quiet=false, no_quit=false;
 
 
 size_t index_from_val (char v) {
   for (size_t i=0; i < n_opt; i++) {
-    if (v == myOptions[i].val) return i;
+    if (v == my_ropts[i].val) return i;
   }
 
   return n_opt+1;
@@ -71,7 +71,7 @@ size_t index_from_val (char v) {
 
 size_t index_from_name (std::string n) {
   for (size_t i=0; i < n_opt; i++) {
-    if (n == myOptions[i].name) return i;
+    if (n == my_ropts[i].name) return i;
   }
 
   return n_opt+1;
@@ -79,8 +79,8 @@ size_t index_from_name (std::string n) {
 
 std::string name_from_val (char v) {
   for (size_t i=0; i < n_opt; i++) {
-    if (v == myOptions[i].val) {
-      return myOptions[i].name;
+    if (v == my_ropts[i].val) {
+      return my_ropts[i].name;
     }
   }
 
@@ -89,8 +89,8 @@ std::string name_from_val (char v) {
 
 char val_from_name (std::string n) {
   for (size_t i=0; i < n_opt; i++) {
-    if (n == myOptions[i].name && myOptions[i].val != '\0') {
-      return myOptions[i].val;
+    if (n == my_ropts[i].name && my_ropts[i].val != '\0') {
+      return my_ropts[i].val;
     }
   }
 
@@ -144,7 +144,7 @@ std::string getBuild() {
   #endif
 }
 
-std::string parse_underline(std::string s) {
+std::string parse_vt(std::string s) {
   std::string ret="";
   bool close_ul=false;
 
@@ -180,9 +180,9 @@ void usage(std::ostream& out) {
 
   size_t rion=longest_opname+4;
 
-  for (auto o:myOptions) {
+  for (auto o:my_ropts) {
     std::string uname;
-    uname=parse_underline(o.name);
+    uname=parse_vt(o.name);
     //uname=o.name;
 
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
@@ -224,30 +224,30 @@ void getVersion(char ='\0', std::string ="", std::string ="") {
 }
 
 void set_options () {
-  n_opt=myOptions.size();
+  n_opt=my_ropts.size();
   long_options=new option[n_opt+1];
   char v;
 
   for (size_t i=0; i < n_opt; i++) {
-    //std::cout << "myv val " << myOptions[i].val << ", name " << myOptions[i].name << std::endl;
-    if (myOptions[i].name.size() > longest_opname) longest_opname=myOptions[i].name.size();
+    //std::cout << "myv val " << my_ropts[i].val << ", name " << my_ropts[i].name << std::endl;
+    if (my_ropts[i].name.size() > longest_opname) longest_opname=my_ropts[i].name.size();
 
-    if (myOptions[i].name.size() > 0) long_options[i].name=myOptions[i].name.c_str();
+    if (my_ropts[i].name.size() > 0) long_options[i].name=my_ropts[i].name.c_str();
     else long_options[i].name=NULL;
 
-    long_options[i].has_arg=myOptions[i].has_arg;
-    long_options[i].val=myOptions[i].val;
+    long_options[i].has_arg=my_ropts[i].has_arg;
+    long_options[i].val=my_ropts[i].val;
     long_options[i].flag=NULL;
 
     //std::cout << "[[[ lopt val " << (char)long_options[i].val << ", name " << long_options[i].name << ", has_arg " << long_options[i].has_arg << "]]]" << std::endl;
 
-    if (myOptions[i].val == 0) v=val_from_name(myOptions[i].name);
-    else v=myOptions[i].val;
+    if (my_ropts[i].val == 0) v=val_from_name(my_ropts[i].name);
+    else v=my_ropts[i].val;
 
     if (v && optstr.find(v) == std::string::npos) {
       optstr+=(char)v;
 
-      switch (myOptions[i].has_arg) {
+      switch (my_ropts[i].has_arg) {
         case required_argument:
           optstr+=':';
           break;
@@ -269,7 +269,7 @@ bool insert_arg_if_missing(const std::string name, const char val, int oi_mode, 
   // Do nothing if val or name already exist
   if (index_from_val(val) > n_opt && index_from_name(name) > n_opt) {
 //    std::cout << "Adding " << name << std::endl;
-    myOptions.insert(myOptions.begin(), { name, val, oi_mode, has_a, help, func });
+    my_ropts.insert(my_ropts.begin(), { name, val, oi_mode, has_a, help, func });
     n_opt++;
     return true;
   }
@@ -319,7 +319,7 @@ bool interp () {
 
     if (cmd.size() > 0 && cmd != "") {
       found_cmd=false;
-      for(auto myopt:myOptions) {
+      for(auto myopt:my_ropts) {
         if (myopt.oi_mode != opt_only && (myopt.name == cmd || (cmd.size() == 1 && myopt.val == cmd[0]))) {
           //std::cout << "n [" << myopt.name << "], cmd [" << cmd << ']' << std::endl;
           found_cmd=true;
@@ -340,13 +340,13 @@ bool interp () {
   return true;
 }
 
-void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
+void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
   progpath=std::filesystem::path(argv[0]).stem().string();
   intro=pIntro;
   version=pVersion;
   copyright=pCopyright;
   for (auto vo:pOptions) {
-    myOptions.push_back(vo);
+    my_ropts.push_back(vo);
     //std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
   }
 
@@ -356,7 +356,7 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
   insert_arg_if_missing("_inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
   insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
   insert_arg_if_missing("_help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
-//  for (auto vo:myOptions) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
+//  for (auto vo:my_ropts) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
   //std::cout << "optstr " << optstr << std::endl;
@@ -378,15 +378,15 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
       idx=index_from_val(c);
 
       if (idx < n_opt) {
-        //std::cout << "Activating option '" << (char)c << "', name \"" << myOptions[idx].name << "', arg ? " << myOptions[idx].val << ", optarg [[" << (optarg?optarg:"") << "]]" << std::endl;
+        //std::cout << "Activating option '" << (char)c << "', name \"" << my_ropts[idx].name << "', arg ? " << my_ropts[idx].val << ", optarg [[" << (optarg?optarg:"") << "]]" << std::endl;
 
-        if (myOptions[idx].func != nullptr) {
-          switch (myOptions[idx].has_arg) {
+        if (my_ropts[idx].func != nullptr) {
+          switch (my_ropts[idx].has_arg) {
           case required_argument:
             oarg="";
             if (optarg) oarg=optarg;
             if (oarg == "" || (oarg[0] == '-' && oarg[1] != 0)) {
-              std::cerr << "Missing argument for option -" << myOptions[idx].val << "/--" << myOptions[idx].name << ")" << std::endl;
+              std::cerr << "Missing argument for option -" << my_ropts[idx].val << "/--" << my_ropts[idx].name << ")" << std::endl;
               usage(std::cerr);
               if (!interp_on) exit(ENOTSUP);
             }
@@ -401,8 +401,8 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
             break;
           }
 
-          //std::cout << "Calling func for arg " << myOptions[idx].val << "|" << myOptions[idx].name << "|" << oarg << std::endl;
-          myOptions[idx].func(c, myOptions[idx].name, oarg);
+          //std::cout << "Calling func for arg " << my_ropts[idx].val << "|" << my_ropts[idx].name << "|" << oarg << std::endl;
+          my_ropts[idx].func(c, my_ropts[idx].name, oarg);
         }
       }
     }
