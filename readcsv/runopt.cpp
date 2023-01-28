@@ -24,7 +24,30 @@
 
 #ifdef _WIN32
 #include <windows.h>
+void open_console() {
+  static bool console_not_opened=true;
+
+  if (console_not_opened) {
+    SetConsoleOutputCP(CP_UTF8);
+    // Set output mode to handle virtual terminal sequences
+    HANDLE hOut=GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (hOut == INVALID_HANDLE_VALUE) {
+        DWORD dwMode=0;
+
+        if (!GetConsoleMode(hOut, &dwMode)) {
+        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+        SetConsoleMode(hOut, dwMode);
+      }
+    }
+
+    console_not_opened=false;
+  }
+}
+#else
+void open_console() { }
 #endif
+
 
 #include "util.h"
 #include "runopt.h"
@@ -121,6 +144,27 @@ std::string getBuild() {
   #endif
 }
 
+std::string parse_underline(std::string s) {
+  std::string ret="";
+  bool close_ul=false;
+
+  for(auto c:s) {
+    if (c == '_') {
+      ret+="\033[4m\033[92m";
+      close_ul=true;
+    } else {
+      ret+=c;
+
+      if (close_ul) {
+        ret+="\033[0m";
+        close_ul=false;
+      }
+    }
+  }
+
+  return ret;
+}
+
 std::string progpath="";
 std::string intro="";
 std::string version="1.0.0";
@@ -128,21 +172,25 @@ std::string copyright="";
 void usage(std::ostream& out) {
   if (arg_sel) interp_on=false;
 
+  open_console();
   if (!interp_on) out << "Usage: " << progpath << " [OPTIONS] ARGUMENT" << std::endl;
   out << intro << std::endl;
   if (interp_on) out << "Available commands and their shortcut, if available." << std::endl;
   else out << "Available options" << std::endl;
 
-  size_t rion=longest_opname+3;
+  size_t rion=longest_opname+4;
 
   for (auto o:myOptions) {
-    //if (o.has_arg == a_comment) out << o.help << std::endl;
+    std::string uname;
+    uname=parse_underline(o.name);
+    //uname=o.name;
+
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
       out << o.help << std::endl;
     } else if (interp_on && (o.oi_mode == opt_itr || o.oi_mode == itr_only)) {
       std::string hlp=o.help;
       if (hlp.size() > 0) hlp[0]=tolower(hlp[0]);
-      out.width(rion); out << std::left << o.name;
+      out.width(rion); out << std::left << uname;
       if (isprint(o.val)) out << "(" << o.val << ") ";
       else out << "   ";
       out << hlp << std::endl;
@@ -151,7 +199,7 @@ void usage(std::ostream& out) {
       else out << '-' << o.val << ",";
       std::string hlp=o.help;
       if (hlp.size() > 0) hlp[0]=toupper(hlp[0]);
-      out.width(rion); out << std::left << " --"+o.name << hlp << std::endl;
+      out.width(rion); out << std::left << " --"+uname << hlp << std::endl;
     }
   }
 }
@@ -229,20 +277,6 @@ bool insert_arg_if_missing(const std::string name, const char val, int oi_mode, 
   return false;
 }
 
-#ifdef _WIN32
-bool EnableVTMode()
-{
-  // Set output mode to handle virtual terminal sequences
-  HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-  if (hOut == INVALID_HANDLE_VALUE) return false;
-  DWORD dwMode = 0;
-  if (!GetConsoleMode(hOut, &dwMode)) return false;
-  dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-  if (!SetConsoleMode(hOut, dwMode)) return false;
-  return true;
-}
-#endif
-
 #define trc std::cout << __LINE__ << std::endl;
 bool interp () {
   arg_sel=false;
@@ -258,10 +292,7 @@ bool interp () {
   std::string::size_type pos;
   bool found_cmd;
 
-#ifdef _WIN32
-  SetConsoleOutputCP(CP_UTF8);
-  EnableVTMode();
-#endif
+  open_console();
   std::cout << prompt << std::flush;
 
   no_quit=true;
@@ -320,24 +351,24 @@ void getopt_init(int argc, char **argv, std::vector<my_option> pOptions, const s
   }
 
   // Try to insert --help and --version if not already done
-  insert_arg_if_missing("quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
-  insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
-  insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
+  insert_arg_if_missing("_quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
+  insert_arg_if_missing("_batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
+  insert_arg_if_missing("_inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
   insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
-  insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
+  insert_arg_if_missing("_help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
 //  for (auto vo:myOptions) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
   //std::cout << "optstr " << optstr << std::endl;
 
-  int option_index = 0, c;
+  int option_index=0, c;
 
   //for (int i=0; i < argc; i++) std::cout << "argv[" << i << "]=" << argv[i] << std::endl;
 
   size_t idx;
   std::string oarg;
 
-  while ((c = getopt_long_only(argc, argv, optstr.c_str(), long_options, &option_index)) != -1) {
+  while ((c=getopt_long_only(argc, argv, optstr.c_str(), long_options, &option_index)) != -1) {
     //std::cout << "LOOP val [" << (char)c << "], name [" << long_options[option_index].name << "], idx " << option_index << ", n_opt " << n_opt << std::endl;
 
     if (c == '?') {

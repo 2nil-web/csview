@@ -16,7 +16,7 @@ else
 CXXFLAGS += -std=c++23
 endif
 
-#LDFLAGS  += -static
+LDFLAGS  += -static
 EXEXT=.exe
 ECHO=echo -e
 else
@@ -29,7 +29,7 @@ LDLIBS += -lstdc++
 
 #CPPFLAGS += -D_UNICODE -DUNICODE
 CFLAGS   += -Wall -Wextra -std=c18 -pedantic
-CXXFLAGS += -Wall -Wextra -pedantic -Os
+CXXFLAGS += -Wall -Wextra -pedantic
 #LDFLAGS  += -g
 LDFLAGS  += -Os -s
 GDB=gdb
