@@ -22,6 +22,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "util.h"
+#include "runopt.h"
+
 bool open_console() {
 #ifdef _WIN32
 #include <windows.h>
@@ -46,9 +49,32 @@ bool open_console() {
   return true;
 }
 
+// Dans une chaine, remplace le caractére précédé par un underscore par un caractére souligné en vert si émulation vt possible
+std::string parse_vt(std::string& s) {
+  if (!open_console()) return s;
 
-#include "util.h"
-#include "runopt.h"
+  std::string ret="", s2="";
+  bool close_ul=false;
+
+  for(auto c:s) {
+    if (c == '_') {
+      ret+="\033[4m\033[92m";
+      close_ul=true;
+    } else {
+      ret+=c;
+      s2+=c;
+
+      if (close_ul) {
+        ret+="\033[0m";
+        close_ul=false;
+      }
+    }
+  }
+
+  s=s2;
+  return ret;
+}
+
 
 // name, has_arg, val, help
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.
@@ -142,29 +168,6 @@ std::string getBuild() {
   #endif
 }
 
-std::string parse_vt(std::string& s) {
-  std::string ret="", s2="";
-  bool close_ul=false;
-
-  for(auto c:s) {
-    if (c == '_') {
-      ret+="\033[4m\033[92m";
-      close_ul=true;
-    } else {
-      ret+=c;
-      s2+=c;
-
-      if (close_ul) {
-        ret+="\033[0m";
-        close_ul=false;
-      }
-    }
-  }
-
-  s=s2;
-  return ret;
-}
-
 
 
 std::string progpath="";
@@ -174,7 +177,6 @@ std::string copyright="";
 void usage(std::ostream& out) {
   if (arg_sel) interp_on=false;
 
-  open_console();
   if (!interp_on) out << "Usage: " << progpath << " [OPTIONS] ARGUMENT" << std::endl;
   out << intro << std::endl;
   if (interp_on) out << "Available commands and their shortcut, if available." << std::endl;
@@ -184,8 +186,7 @@ void usage(std::ostream& out) {
 
   for (auto o:my_ropts) {
     std::string uname;
-    if (open_console()) uname=parse_vt(o.name);
-    else uname=o.name;
+    uname=parse_vt(o.name);
 
     std::string spc="";
     spc.append(rion-o.name.size(), ' ');
@@ -299,7 +300,6 @@ bool interp () {
   std::string::size_type pos;
   bool found_cmd;
 
-  open_console();
   std::cout << prompt << std::flush;
 
   no_quit=true;
