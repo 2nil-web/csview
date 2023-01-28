@@ -165,7 +165,7 @@ void fmt() {
   }
 }
 
-void read() {
+void readt() {
   if (cmd_parm == "") {
     RETURN_IF_NO_LOADED_FILE;
     csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), g_in_memory); 
@@ -229,7 +229,7 @@ void transp () {
   csvs[curr_csv_idx].transpose();
 }
 
-void write () {
+void writet () {
   RETURN_IF_NO_LOADED_FILE;
 
   csvs[curr_csv_idx].save_from_memory();
@@ -245,8 +245,8 @@ std::map<std::string, std::function<void()>> cmd_funcs = {
   { "xy",        xy     },
   { "find",      find   }, { "f",    find   },
   { "transpose", transp }, { "tr",   transp },
-  { "read",      read   }, { "r",    read   },
-  { "write",     write  }, { "w",    write  },
+  { "read",      readt  }, { "r",    readt  },
+  { "write",     writet }, { "w",    writet },
   { "set",       set    }, { "s",    set    },
   { "var",       fmt    }, { "v",    fmt    },
   { "quit",      quit   }, { "exit", quit   }, { "q", quit }, { "x", quit },
