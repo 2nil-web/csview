@@ -187,7 +187,7 @@ void quit(char, std::string, std::string) {
   no_quit=false;
 }
 
-std::vector<run_opt> run_opts = {
+std::vector<run_opt> run_opts = {{
   { "i_nfo",      'n', opt_itr, no_argument,       "display various informations on the current file.", info },
   { "_line",      'l', opt_itr, optional_argument, "display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form 'r1-r2' or a list of line in the form 'r1 r2 r3 ...'. Rows indexes start to 1 and end to maximum number of lines.", row },
   { "_cell",      'c', opt_itr, optional_argument, "behave like the 'line' command but for cells.", cell },
@@ -203,16 +203,16 @@ std::vector<run_opt> run_opts = {
   { "_var",       'v', opt_itr, optional_argument, "without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.", fmt },
   { "_quit",      'q', itr_only,     no_argument,       "leave.", quit },
   { "e_xit",      'x', itr_only,     no_argument,       "leave.", quit },
-/*  { "!",         '!', itr_only,     required_argument, "execute a command in the current shell.",
+  { "!",         '!', itr_only,     required_argument, "execute a command in the current shell.",
     [] (char , std::string , std::string val) -> void
     {
       std::system(val.c_str());
     }
-  },*/
+  },
 //  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
 //  { "", '\0', 0, 0, "", NULL },
 //  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
-};
+}};
 
 
 int main(int argc, char **argv, char **) {

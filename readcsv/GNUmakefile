@@ -13,7 +13,7 @@ CC=clang
 CXX=clang++
 CXXFLAGS += -std=c++20
 else
-CXXFLAGS += -std=c++23
+CXXFLAGS += -std=c++20
 endif
 
 LDFLAGS  += -static
