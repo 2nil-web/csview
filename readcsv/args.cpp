@@ -203,12 +203,12 @@ std::vector<run_opt> run_opts = {
   { "_var",       'v', opt_itr, optional_argument, "without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.", fmt },
   { "_quit",      'q', itr_only,     no_argument,       "leave.", quit },
   { "e_xit",      'x', itr_only,     no_argument,       "leave.", quit },
-  { "!",         '!', itr_only,     required_argument, "execute a command in the current shell.",
+/*  { "!",         '!', itr_only,     required_argument, "execute a command in the current shell.",
     [] (char , std::string , std::string val) -> void
     {
       std::system(val.c_str());
     }
-  }
+  },*/
 //  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
 //  { "", '\0', 0, 0, "", NULL },
 //  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
