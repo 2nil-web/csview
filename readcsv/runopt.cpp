@@ -42,9 +42,8 @@ bool open_console() {
   }
 
   return true;
-#else
-  console_not_opened=false;
 #endif
+  return true;
 }
 
 
