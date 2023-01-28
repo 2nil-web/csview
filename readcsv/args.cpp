@@ -208,7 +208,7 @@ std::vector<my_option> my_options = {
     {
       std::system(val.c_str());
     }
-  },
+  }
 //  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
 //  { "", '\0', 0, 0, "", NULL },
 //  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
