@@ -13,7 +13,7 @@ CC=clang
 CXX=clang++
 CXXFLAGS += -std=c++20
 else
-CXXFLAGS += -std=c++20
+CXXFLAGS += -std=c++23
 endif
 
 LDFLAGS  += -static
@@ -21,7 +21,9 @@ EXEXT=.exe
 ECHO=echo -e
 else
 ECHO=echo
+CC=g++
 CXXFLAGS += -std=c++20
+LDFLAGS+=-static
 endif
 
 LDLIBS += -lstdc++

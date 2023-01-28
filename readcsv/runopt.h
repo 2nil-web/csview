@@ -20,7 +20,8 @@ struct run_opt {
   int oi_mode;
   int has_arg;
   std::string help;
-  std::function<void(char c, std::string, std::string)> func;
+  OptFunc func;
+//  std::function<void(char c, std::string, std::string)> func;
   //void (*func) (char c, std::string, std::string);
 };
 

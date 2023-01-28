@@ -113,7 +113,7 @@ void transpose(char, std::string, std::string) {
   csvs[curr_csv_idx].transpose();
 }
 
-void read(char, std::string, std::string param) {
+void readtab(char, std::string, std::string param) {
   if (param == "") {
     RETURN_IF_NO_LOADED_FILE;
     csvs[curr_csv_idx].load(csvs[curr_csv_idx].get_filename(), g_in_memory); 
@@ -133,7 +133,7 @@ void read(char, std::string, std::string param) {
   }
 }
 
-void write(char, std::string, std::string) {
+void writetab(char, std::string, std::string) {
   RETURN_IF_NO_LOADED_FILE;
   csvs[curr_csv_idx].save_from_memory();
 }
@@ -187,7 +187,7 @@ void quit(char, std::string, std::string) {
   no_quit=false;
 }
 
-std::vector<run_opt> run_opts = {
+std::vector<run_opt> r_opts = {
   { "i_nfo",      'n', opt_itr,  no_argument,       "display various informations on the current file.", info },
   { "_line",      'l', opt_itr,  optional_argument, "display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form 'r1-r2' or a list of line in the form 'r1 r2 r3 ...'. Rows indexes start to 1 and end to maximum number of lines.", row },
   { "_cell",      'c', opt_itr,  optional_argument, "behave like the 'line' command but for cells.", cell },
@@ -197,8 +197,8 @@ std::vector<run_opt> run_opts = {
   { "_find",      'f', opt_itr,  required_argument, "display the line where the string is found (may be a regex).", find },
   { "_transpose", 't', opt_itr,  no_argument,       "transpose the matrix represented by the csv.", transpose },
   { "_tr",       '\0', opt_itr,  no_argument,       "another shortcut for option transpose", transpose },
-  { "_read",      'r', opt_itr,  optional_argument, "if a filename is provided then load a new file and set it as the current file else update the current file if there is.", read },
-  { "_write",     'w', opt_itr,  no_argument,       "save the current file, if there is.", write },
+  { "_read",      'r', opt_itr,  optional_argument, "if a filename is provided then load a new file and set it as the current file else update the current file if there is.", readtab },
+  { "_write",     'w', opt_itr,  no_argument,       "save the current file, if there is.", writetab },
   { "_set",       's', opt_itr,  optional_argument, "without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.", set },
   { "_var",       'v', opt_itr,  optional_argument, "without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.", fmt },
   { "_quit",      'q', itr_only, no_argument,       "leave.", quit },
@@ -216,7 +216,7 @@ std::vector<run_opt> run_opts = {
 
 
 int main(int argc, char **argv, char **) {
-  getopt_init(argc, argv, run_opts, "Command line viewer and handler for csv or text file.", "0.1.0", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
+  getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "0.1.0", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
 
   if (!interp() && argc < 2) {
     std::cerr << "Missing parameters. ";
