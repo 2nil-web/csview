@@ -38,14 +38,14 @@ GDB=gdb
 STRIP=strip
 UPX=upx
 
-PREFIX=readcsv
+PREFIX=tabsh
 #SRCS=$(wildcard *.cpp)
-SRCS=${PREFIX}.cpp interp.cpp main.cpp util.cpp #mygetopt.cpp
+SRCS=${PREFIX}.cpp readcsv.cpp runopt.cpp util.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=${PREFIX}${EXEXT}
 
 
-all : ${TARGET} args${EXEXT}
+all : ${TARGET}
 
 ifeq ($(MSBUILD),)
 ${TARGET} : ${OBJS}
@@ -54,8 +54,6 @@ ${TARGET} : ${SRCS}
 	${MSBUILD} ${PREFIX}.sln -p:Configuration=Release
 	cp x64/Release/${TARGET} .
 endif
-
-args${EXEXT} : args.o readcsv.o runopt.o util.o
 
 strip : $(TARGET)
 	@file ${TARGET} | grep stripped >/dev/null || ( $(STRIP) $(TARGET) && echo "Strip OK" )
