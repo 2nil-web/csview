@@ -216,7 +216,7 @@ std::vector<run_opt> r_opts = {
 
 
 int main(int argc, char **argv, char **) {
-  getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "0.1.0", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
+  getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
 
   if (!interp() && argc < 2) {
     std::cerr << "Missing parameters. ";

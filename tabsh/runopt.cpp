@@ -22,12 +22,12 @@
 #include <fstream>
 #include <iostream>
 
+#include "version.h"
 #include "util.h"
 #include "runopt.h"
 
 bool open_console() {
 #ifdef _WIN32
-#include <windows.h>
   static bool console_not_opened=true;
 
   if (console_not_opened) {
@@ -43,8 +43,6 @@ bool open_console() {
     SetConsoleMode(hOut, dwMode);
     console_not_opened=false;
   }
-
-  return true;
 #endif
   return true;
 }
@@ -172,7 +170,6 @@ std::string getBuild() {
 
 std::string progpath="";
 std::string intro="";
-std::string version="1.0.0";
 std::string copyright="";
 void usage(std::ostream& out) {
   if (arg_sel) interp_on=false;
@@ -225,6 +222,7 @@ void getVersion(char ='\0', std::string ="", std::string ="") {
   std::string ppath=progpath;
   if (ppath.size() > 0) ppath[0]=toupper(ppath[0]);
 
+  if (commit != "") version+='+'+commit;
   std::cout << ppath << ' ' << version << ", build for " << getBuild();
   if (copyright.size() > 0) std::cout << ", " << copyright << std::endl;
 
@@ -350,7 +348,7 @@ bool interp () {
 void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
   progpath=std::filesystem::path(argv[0]).stem().string();
   intro=pIntro;
-  version=pVersion;
+  if (pVersion != "") version=pVersion;
   copyright=pCopyright;
   for (auto vo:pOptions) {
     my_ropts.push_back(vo);
