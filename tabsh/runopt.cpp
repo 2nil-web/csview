@@ -47,30 +47,16 @@ bool open_console() {
   return true;
 }
 
-// Dans une chaine, remplace le caractére précédé par un underscore par un caractére souligné en vert si émulation vt possible
-std::string parse_vt(std::string& s) {
-  if (!open_console()) return s;
+// Cherche la 1ére occurence de c dans la chaine s, et la met en valeur par un souligné vert si émulation vt possible
+std::string parse_vt(char c, std::string s) {
+  auto pos=s.find_first_of(c);
 
-  std::string ret="", s2="";
-  bool close_ul=false;
-
-  for(auto c:s) {
-    if (c == '_') {
-      ret+="\033[4m\033[92m";
-      close_ul=true;
-    } else {
-      ret+=c;
-      s2+=c;
-
-      if (close_ul) {
-        ret+="\033[0m";
-        close_ul=false;
-      }
-    }
+  if (pos != std::string::npos && open_console()) {
+    s.insert(pos+1, "\033[0m");
+    s.insert(pos, "\033[4m\033[92m");
   }
 
-  s=s2;
-  return ret;
+  return s;
 }
 
 
@@ -179,11 +165,11 @@ void usage(std::ostream& out) {
   if (interp_on) out << "Available commands and their shortcut, if available." << std::endl;
   else out << "Available options" << std::endl;
 
-  size_t rion=longest_opname+4;
+  size_t rion=longest_opname+1;
 
   for (auto o:my_ropts) {
     std::string uname;
-    uname=parse_vt(o.name);
+    uname=parse_vt(o.val, o.name);
 
     std::string spc="";
     spc.append(rion-o.name.size(), ' ');
@@ -356,11 +342,11 @@ void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std
   }
 
   // Try to insert --help and --version if not already done
-  insert_arg_if_missing("_quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
-  insert_arg_if_missing("_batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
-  insert_arg_if_missing("_inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
+  insert_arg_if_missing("quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
+  insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
+  insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
   insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
-  insert_arg_if_missing("_help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
+  insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
 //  for (auto vo:my_ropts) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
