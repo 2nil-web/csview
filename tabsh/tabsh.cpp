@@ -10,7 +10,7 @@
 
 #include "util.h"
 #include "runopt.h"
-#include "readcsv.h"
+#include "tsv.h"
 
 
 #define RETURN_IF_NO_LOADED_FILE  if (csvs.size() == 0) { std::cout << "No file loaded" << std::endl; return; }

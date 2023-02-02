@@ -1,7 +1,7 @@
 
 ifneq ($(shell uname -s),Linux)
 ifeq (${HOSTNAME},PC-Denis)
-MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
+#MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 endif
 
 ifneq (${MSYSTEM},MSYS)
@@ -42,7 +42,7 @@ UPX=upx
 
 PREFIX=tabsh
 #SRCS=$(wildcard *.cpp)
-SRCS=${PREFIX}.cpp readcsv.cpp runopt.cpp util.cpp
+SRCS=${PREFIX}.cpp tsv.cpp runopt.cpp util.cpp
 OBJS=$(SRCS:.cpp=.o)
 TARGET=${PREFIX}${EXEXT}
 ISO8601 := $(shell date +%Y-%m-%dT%H:%M:%SZ)
