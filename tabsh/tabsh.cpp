@@ -209,7 +209,7 @@ opt_list r_opts = {
       std::system(val.c_str());
     }
   },
-  { "", '\0', opt_only, no_argument, "\Remaining arguments are taken as file to read.", NULL },
+  { "", '\0', opt_only, no_argument, "Remaining arguments are taken as file to read.", NULL },
 //  { "", '\0', 0, 0, "", NULL },
 //  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
 };
