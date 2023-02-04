@@ -11,7 +11,7 @@ endif
 ifeq (${MSYSTEM},CLANG64)
 CC=clang
 CXX=clang++
-CXXFLAGS += -std=c++23
+CXXFLAGS += -std=c++20
 else
 CXXFLAGS += -std=c++23
 endif
@@ -22,7 +22,7 @@ ECHO=echo -e
 else
 ECHO=echo
 #CC=g++
-CXXFLAGS += -std=c++20
+CXXFLAGS += -std=c++23
 #LDFLAGS+=-static
 endif
 
