@@ -21,7 +21,7 @@ EXEXT=.exe
 ECHO=echo -e
 else
 ECHO=echo
-#CC=g++
+CC=g++
 CXXFLAGS += -std=c++23
 #LDFLAGS+=-static
 endif
