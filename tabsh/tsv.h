@@ -1,6 +1,6 @@
 
-#ifndef READCSV_H
-#define READCSV_H
+#ifndef TSV_H
+#define TSV_H
 
 
 namespace csv {
@@ -66,6 +66,9 @@ namespace csv {
     void list_row(std::uintmax_t r);
     void list_row();
 
+    std::vector< std::vector<std::string> > mat;
+    void fill_mat();
+
     std::uintmax_t cell_count();
     bool get_cell(std::uintmax_t, std::uintmax_t, std::vector<cell>&);
     void list_cell(std::uintmax_t c1, std::uintmax_t c2);
@@ -75,5 +78,5 @@ namespace csv {
   };
 }
 
-#endif // READCSV_H
+#endif // TSV_H
 

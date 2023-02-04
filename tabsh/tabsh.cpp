@@ -218,7 +218,7 @@ opt_list r_opts = {
 int main(int argc, char **argv, char **) {
   int opti=getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
 
-  std::cout << "argc " << argc <<  ", opti " << opti << std::endl;
+  //std::cout << "argc " << argc <<  ", opti " << opti << std::endl;
   while (opti < argc) readtab(0, "", argv[opti++]);
 
   if (!interp() && argc < 2) {

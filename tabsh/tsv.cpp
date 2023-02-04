@@ -115,6 +115,7 @@ bool csv::file::read_in_memory() {
   if (swallow_file(filename, in_mem)) {
     for(auto c:in_mem) parse_file(c);
     end_parse_file();
+    fill_mat();
     return true;
   }
 
@@ -300,12 +301,31 @@ bool csv::file::parse_list(std::string s, std::vector<std::uintmax_t>& parm) {
   return true;
 }
 
+/*
+uintmax_t last_r=-1;
+std::vector<std::string> last_rc;
 bool csv::file::get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s) {
   if (r < rows.size()) {
-    std::vector<std::string> rc=split(output_substr(rows[r].start, rows[r].end), cell_separator);
+    if (last_r !=  r) {
+      last_rc=split(output_substr(rows[r].start, rows[r].end), cell_separator);
+    }
 
-    if (c < rc.size()) {
-      s=rc[c];
+    if (c < last_rc.size()) {
+      s=last_rc[c];
+      return true;
+    }
+  }
+
+  return false;
+}
+*/
+
+bool csv::file::get_cell_by_rc(uintmax_t r, uintmax_t c, std::string& s) {
+  r--;
+  c--;
+  if (r < mat.size()) {
+    if (c < mat[r].size()) {
+      s=mat[r][c];
       return true;
     }
   }
@@ -357,6 +377,9 @@ std::string rem_crlf(std::string& s) {
   return s;
 }
 
+
+void trc(std::string s) {
+}
 
 // Transposition de la matrice.
 // Les lignes deviennent des colonnes et inversement.
@@ -449,6 +472,12 @@ void csv::file::list_row() {
   }
 
   list_row(1, rows.size());
+}
+
+void csv::file::fill_mat() {
+  for (uintmax_t r=0; r < rows.size(); r++) {
+      mat.push_back(split(output_substr(rows[r].start, rows[r].end), cell_separator));
+  }
 }
 
 std::uintmax_t csv::file::cell_count() {
