@@ -25,9 +25,10 @@ struct run_opt {
   //void (*func) (char c, std::string, std::string);
 };
 
+typedef std::vector<run_opt> opt_list;
 bool interp ();
 void usage(std::ostream& out = std::cout);
-void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std::string pIntro="Some introductory help message", const std::string pVersion="1.0.0", const std::string copyright="");
+int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pIntro="Some introductory help message", const std::string pVersion="1.0.0", const std::string copyright="");
 
 #endif /* MY_GETOPT_H */
 

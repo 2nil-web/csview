@@ -64,7 +64,7 @@ std::string parse_vt(char c, std::string s) {
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.
 size_t n_opt=0, longest_opname=0;
 static struct option *long_options=NULL;
-static std::vector<run_opt> my_ropts;
+static opt_list my_ropts;
 std::string optstr="";
 bool arg_sel=true, interp_on=true, quiet=false, no_quit=false;
 
@@ -175,7 +175,8 @@ void usage(std::ostream& out) {
     spc.append(rion-o.name.size(), ' ');
 
     if (o.name == "" && o.has_arg == 0 && o.val == 0 && o.func == 0) {
-      out << o.help << std::endl;
+      if (o.oi_mode == opt_itr || (interp_on && o.oi_mode == itr_only) || (!interp_on && o.oi_mode == opt_only))
+        out << o.help << std::endl;
     } else if (interp_on && (o.oi_mode == opt_itr || o.oi_mode == itr_only)) {
       std::string hlp=o.help;
       if (hlp.size() > 0) hlp[0]=tolower(hlp[0]);
@@ -257,10 +258,8 @@ void set_options () {
 
 // Add arg with val and name if not already exists, return true if done else false.
 bool insert_arg_if_missing(const std::string name, const char val, int oi_mode, int has_a=no_argument, const std::string help="", OptFunc func=nullptr) {
-  //std::cout << "insert_arg_if_missing, name " << name << std::endl;
   // Do nothing if val or name already exist
   if (index_from_val(val) > n_opt && index_from_name(name) > n_opt) {
-//    std::cout << "Adding " << name << std::endl;
     my_ropts.insert(my_ropts.begin(), { name, val, oi_mode, has_a, help, func });
     n_opt++;
     return true;
@@ -331,7 +330,7 @@ bool interp () {
   return true;
 }
 
-void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
+int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
   progpath=std::filesystem::path(argv[0]).stem().string();
   intro=pIntro;
   if (pVersion != "") version=pVersion;
@@ -361,6 +360,7 @@ void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std
 
   while ((c=getopt_long_only(argc, argv, optstr.c_str(), long_options, &option_index)) != -1) {
     //std::cout << "LOOP val [" << (char)c << "], name [" << long_options[option_index].name << "], idx " << option_index << ", n_opt " << n_opt << std::endl;
+    //std::cout << "argc " << argc << ", option_index " << option_index << std::endl;
 
     if (c == '?') {
       usage(std::cerr);
@@ -398,5 +398,7 @@ void getopt_init(int argc, char **argv, std::vector<run_opt> pOptions, const std
       }
     }
   }
+
+  return optind;
 }
 

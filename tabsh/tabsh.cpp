@@ -187,12 +187,12 @@ void quit(char, std::string, std::string) {
   no_quit=false;
 }
 
-std::vector<run_opt> r_opts = {
+opt_list r_opts = {
   { "info",      'n', opt_itr,  no_argument,       "display various informations on the current file.", info },
   { "line",      'l', opt_itr,  optional_argument, "display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form 'r1-r2' or a list of line in the form 'r1 r2 r3 ...'. Rows indexes start to 1 and end to maximum number of lines.", row },
   { "cell",      'c', opt_itr,  optional_argument, "behave like the 'line' command but for cells.", cell },
-  { "lincol",    '\0', opt_itr,  required_argument, "display a cell by its line and column coordinate. By example lincol 0,0 <=> cell 0 and lincol 'lastline','lastcol' <=> cell 'lastcellindex'.", linecolumn },
-  { "lc",        '\0', opt_itr,  required_argument, "shortcut for option lincol", linecolumn },
+  { "lincol",   '\0', opt_itr,  required_argument, "display a cell by its line and column coordinate. By example lincol 0,0 <=> cell 0 and lincol 'lastline','lastcol' <=> cell 'lastcellindex'.", linecolumn },
+  { "lc",       '\0', opt_itr,  required_argument, "shortcut for option lincol", linecolumn },
   { "xy",        'y', opt_itr,  required_argument, "display a cell by its column (x) and line (y) coordinate.", xy },
   { "find",      'f', opt_itr,  required_argument, "display the line where the string is found (may be a regex).", find },
   { "transpose", 't', opt_itr,  no_argument,       "transpose the matrix represented by the csv.", transpose },
@@ -203,20 +203,23 @@ std::vector<run_opt> r_opts = {
   { "var",       'v', opt_itr,  optional_argument, "without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.", fmt },
   { "quit",      'q', itr_only, no_argument,       "leave.", quit },
   { "exit",      'x', itr_only, no_argument,       "leave.", quit },
-  { "!",          '!', itr_only, required_argument, "execute a command in the current shell.",
+  { "!",         '!', itr_only, required_argument, "execute a command in the current shell.",
     [] (char , std::string , std::string val) -> void
     {
       std::system(val.c_str());
     }
   },
-//  { "", '\0', 0, 0, "\nAdditionnal help message.", NULL },
+  { "", '\0', opt_only, no_argument, "\Remaining arguments are taken as file to read.", NULL },
 //  { "", '\0', 0, 0, "", NULL },
 //  { "", '\0', 0, 0, "\n2nd Additional message.", NULL }
 };
 
 
 int main(int argc, char **argv, char **) {
-  getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
+  int opti=getopt_init(argc, argv, r_opts, "Command line viewer and handler for csv or text file.", "", "(c) Denis LALANNE. Provided as is. NO WARRANTY of any kind.");
+
+  std::cout << "argc " << argc <<  ", opti " << opti << std::endl;
+  while (opti < argc) readtab(0, "", argv[opti++]);
 
   if (!interp() && argc < 2) {
     std::cerr << "Missing parameters. ";
