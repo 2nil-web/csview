@@ -105,11 +105,13 @@
       <PreprocessorDefinitions>STATIC_GETOPT;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>getopt_vc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;getopt_vc;wineditline/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>.</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wineditline\lib64\edit_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -121,16 +123,19 @@
       <PreprocessorDefinitions>STATIC_GETOPT;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>getopt_vc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;getopt_vc;wineditline/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>.</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wineditline\lib64\edit_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="vt_text_format.h" />
     <ClInclude Include="tsv.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="runopt.h" />

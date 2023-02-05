@@ -26,8 +26,18 @@
 #include "util.h"
 #include "runopt.h"
 
-bool open_console() {
+#ifdef _MSC_VER
+#include "editline/readline.h"
+#else
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
+#include "vt_text_format.h"
+
 #ifdef _WIN32
+#include <windows.h>
+bool open_console() {
   static bool console_not_opened=true;
 
   if (console_not_opened) {
@@ -43,8 +53,16 @@ bool open_console() {
     SetConsoleMode(hOut, dwMode);
     console_not_opened=false;
   }
-#endif
+
   return true;
+}
+#else
+bool open_console() { return true; }
+#endif
+
+// See https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences
+std::string vt_txt(unsigned int n) {
+  return "\033["+std::to_string(n)+"m";
 }
 
 // Cherche la 1ére occurence de c dans la chaine s, et la met en valeur par un souligné vert si émulation vt possible
@@ -52,13 +70,23 @@ std::string parse_vt(char c, std::string s) {
   auto pos=s.find_first_of(c);
 
   if (pos != std::string::npos && open_console()) {
-    s.insert(pos+1, "\033[0m");
-    s.insert(pos, "\033[4m\033[92m");
+    s.insert(pos+1, vt_txt(VT_Reset));
+    s.insert(pos, vt_txt(VT_Green));
   }
 
   return s;
 }
 
+
+bool rdlnpp(std::string prompt, std::string& line) {
+  char *_line=readline(prompt.c_str());
+  if (_line) {
+    line=_line;
+    return true;
+  }
+
+  return false;
+}
 
 // name, has_arg, val, help
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.
@@ -197,7 +225,6 @@ void usage(std::ostream& out) {
 }
 
 void getUsage(char , std::string , std::string ) {
-//  if (!no_quit) interp_on=false;
   usage();
   if (!interp_on) exit(EXIT_SUCCESS);
 }
@@ -278,16 +305,21 @@ bool interp () {
     already_v=false;
   }
 
-  std::string ln, prompt="> ";
+  std::string ln;
+  int idx=1;
   std::string cmd, param;
   std::string::size_type pos;
   bool found_cmd;
 
-  std::cout << prompt << std::flush;
-
   no_quit=true;
-  while (no_quit && std::getline(std::cin, ln)) {
+  //while (no_quit && std::getline(std::cin, ln)) {
+  while (rdlnpp(std::to_string(idx)+" >", ln)) {
     trim(ln);
+
+    if (ln.ends_with("#EOF")) {
+      ln.erase(ln.end()-4, ln.end());
+      no_quit=false;
+    }
 
     // Cas particulier du ! qui n'a pas forcément besoin d'espace après ses paramétres
     if (ln[0] == '!') {
@@ -311,9 +343,12 @@ bool interp () {
       found_cmd=false;
       for(auto myopt:my_ropts) {
         if (myopt.oi_mode != opt_only && (myopt.name == cmd || (cmd.size() == 1 && myopt.val == cmd[0]))) {
-          //std::cout << "n [" << myopt.name << "], cmd [" << cmd << ']' << std::endl;
           found_cmd=true;
-          if (myopt.func != NULL) myopt.func(myopt.val, myopt.name, param);
+          if (myopt.func != NULL) {
+            myopt.func(myopt.val, myopt.name, param);
+            add_history((char *)ln.c_str());
+            idx++;
+          }
         }
       }
 
@@ -324,7 +359,7 @@ bool interp () {
       }
     }
 
-    if (no_quit) std::cout << prompt << std::flush;
+    if (!no_quit) break;
   }
 
   return true;
