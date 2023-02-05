@@ -1,6 +1,7 @@
 
 ifneq ($(shell uname -s),Linux)
 ifeq (${HOSTNAME},PC-Denis)
+CMAKE='/c/Program Files/CMake/bin/cmake.exe'
 MSBUILD='C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe'
 endif
 
@@ -16,7 +17,7 @@ else
 CXXFLAGS += -std=c++23
 endif
 
-LDFLAGS  += -static
+LDFLAGS  += -static -Wl,--allow-multiple-definition
 EXEXT=.exe
 ECHO=echo -e
 else
@@ -36,6 +37,7 @@ CXXFLAGS += -Wall -Wextra -pedantic
 #LDFLAGS  += -g
 LDFLAGS  += -Os -s
 LDLIBS += -lstdc++
+LDLIBS += -lhistory -lreadline -ltermcap
 GDB=gdb
 STRIP=strip
 UPX=upx
@@ -55,9 +57,13 @@ all : version_check.txt version.h ${TARGET}
 ifeq ($(MSBUILD),)
 ${TARGET} : ${OBJS}
 else
-${TARGET} : ${SRCS}
+${TARGET} : wineditline/lib64/edit_a.lib ${SRCS}
 	${MSBUILD} ${PREFIX}.sln -p:Configuration=Release
 	cp x64/Release/${TARGET} .
+
+wineditline/lib64/edit_a.lib : wineditline/src/*.c
+	cd wineditline && test -d build || mkdir -p build && cd build && ${CMAKE} -A x64 ..
+	cd wineditline/build && ${MSBUILD} -p:Configuration=Release INSTALL.vcxproj
 endif
 
 strip : $(TARGET)
@@ -93,8 +99,8 @@ clean :
 	rm -f *~ *.o $(OBJS)
 
 rclean :
-	rm -f *~ *.d *.o $(OBJS) $(TARGET) *.exe
-	rm -rf x64
+	rm -f *~ *.d *.o $(OBJS) ${TARGET} *.exe
+	rm -rf x64 wineditline/build wineditline/bin64 wineditline/lib64 wineditline/include
 
 
 # Génération du version.h intégré dans l'appli
