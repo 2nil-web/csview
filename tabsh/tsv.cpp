@@ -378,8 +378,7 @@ std::string rem_crlf(std::string& s) {
 }
 
 
-void trc(std::string s) {
-}
+//void trc(std::string s) { }
 
 // Transposition de la matrice.
 // Les lignes deviennent des colonnes et inversement.
