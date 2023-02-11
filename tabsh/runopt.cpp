@@ -191,7 +191,7 @@ void usage(std::ostream& out) {
   if (!interp_on) out << "Usage: " << progpath << " [OPTIONS] ARGUMENT" << std::endl;
   out << intro << std::endl;
   if (interp_on) out << "Available commands and their shortcut, if available." << std::endl;
-  else out << "Available options" << std::endl;
+  else out << "Available options:" << std::endl;
 
   size_t rion=longest_opname+1;
 
@@ -222,6 +222,7 @@ void usage(std::ostream& out) {
       out << " --"+uname+spc << hlp << std::endl;
     }
   }
+  if (!interp_on) out << "Order in which options are used is important." << std::endl;
 }
 
 void getUsage(char , std::string , std::string ) {
@@ -312,6 +313,7 @@ bool interp () {
   bool found_cmd;
 
   no_quit=true;
+  read_history(".tabsh_history");
   //while (no_quit && std::getline(std::cin, ln)) {
   while (rdlnpp(std::to_string(idx)+" >", ln)) {
     trim(ln);
@@ -322,7 +324,7 @@ bool interp () {
     }
 
     // Cas particulier du ! qui n'a pas forcément besoin d'espace après ses paramétres
-    if (ln[0] == '!') {
+    if (ln[0] == '#') {
       cmd="!";
       param=ln.substr(1);
       trim(param);
@@ -362,7 +364,30 @@ bool interp () {
     if (!no_quit) break;
   }
 
+  write_history(".tabsh_history");
+
   return true;
+}
+
+int int_width(int n) {
+  int l=1;
+
+  while (n >= 10) {
+    n /= 10;
+    l++;
+  }
+
+  return l;
+}
+
+void dispHisto(char , std::string , std::string ) {
+  HIST_ENTRY **h=history_list();
+  int l=history_length();
+  int w=int_width(l);
+
+  for(int i=0; i < l; i++) {
+    if (h[i]) std::cout << std::setw(w) << i << ':' << h[i]->line << std::endl;
+  }
 }
 
 int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
@@ -376,11 +401,12 @@ int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pInt
   }
 
   // Try to insert --help and --version if not already done
+  insert_arg_if_missing("history", 'H', itr_only, no_argument, "Display history.", dispHisto);
   insert_arg_if_missing("quiet", 'q', opt_only, no_argument, "Run silently and do not display a banner in interactive mode.", [] (char , std::string , std::string) -> void { quiet=true; });
   insert_arg_if_missing("batch", 'b', opt_only, no_argument, "work in batch mode default is to work in interactive mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { interp_on=false; });
   insert_arg_if_missing("inter", 'i', opt_only, no_argument, "work in interactive mode, this is the default mode if -h or -V are not provided.", [] (char , std::string , std::string) -> void { arg_sel=false; interp_on=true; });
-  insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information and exit if not in interactive mode.", getVersion);
-  insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if not in interactive mode.", getUsage);
+  insert_arg_if_missing("version", 'V', opt_itr, no_argument, "display version information.", getVersion);
+  insert_arg_if_missing("help", 'h', opt_itr, no_argument, "print this message and exit if interactive mode is not explicitly specified.", getUsage);
 //  for (auto vo:my_ropts) std::cout << "val " << vo.val << ", name " << vo.name << ", help [[" << vo.help << "]]" << std::endl;
 
   set_options();
