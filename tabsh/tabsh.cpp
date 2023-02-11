@@ -182,11 +182,6 @@ void fmt(char, std::string, std::string param) {
   }
 }
 
-void quit(char, std::string, std::string) {
-  extern bool no_quit;
-  no_quit=false;
-}
-
 opt_list r_opts = {
   { "info",      'n', opt_itr,  no_argument,       "display various informations on the current file.", info },
   { "line",      'l', opt_itr,  optional_argument, "display lines of the current file. Without parameters it will display all the lines, an interactive warning might appear if the file has more than a 1000 lines. You can also pass a range in the form 'r1-r2' or a list of line in the form 'r1 r2 r3 ...'. Rows indexes start to 1 and end to maximum number of lines.", row },
@@ -201,9 +196,9 @@ opt_list r_opts = {
   { "write",     'w', opt_itr,  no_argument,       "save the current file, if there is.", writetab },
   { "set",       's', opt_itr,  optional_argument, "without parameter list all the loaded files, else set the file whose number is passed as parameter as the current file.", set },
   { "var",       'v', opt_itr,  optional_argument, "without argument list the actual configuration variables used to parse the csv file else expect a line of the form 'var=value' to change one of them.", fmt },
-  { "quit",      'q', itr_only, no_argument,       "leave.", quit },
-  { "exit",      'x', itr_only, no_argument,       "leave.", quit },
-  { "!",         '!', itr_only, required_argument, "execute a command in the current shell.",
+  { "quit",      'q', itr_only, no_argument,       "leave.", interp_quit },
+  { "exit",      'x', itr_only, no_argument,       "leave.", interp_quit },
+  { ":",         ':', itr_only, required_argument, "execute a command in the current shell.",
     [] (char , std::string , std::string val) -> void
     {
       std::system(val.c_str());

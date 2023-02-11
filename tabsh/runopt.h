@@ -27,6 +27,7 @@ struct run_opt {
 
 typedef std::vector<run_opt> opt_list;
 bool interp ();
+void interp_quit (char, std::string, std::string);
 void usage(std::ostream& out = std::cout);
 int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pIntro="Some introductory help message", const std::string pVersion="1.0.0", const std::string copyright="");
 

@@ -94,7 +94,7 @@ size_t n_opt=0, longest_opname=0;
 static struct option *long_options=NULL;
 static opt_list my_ropts;
 std::string optstr="";
-bool arg_sel=true, interp_on=true, quiet=false, no_quit=false;
+bool arg_sel=true, interp_on=true, quiet=false;
 
 
 size_t index_from_val (char v) {
@@ -296,6 +296,29 @@ bool insert_arg_if_missing(const std::string name, const char val, int oi_mode, 
   return false;
 }
 
+bool interp_done=false;
+void interp_quit (char, std::string, std::string) {
+  interp_done=true;
+}
+
+bool expand(std::string& line) {
+  trim(line);
+#ifndef _MSC_VER
+  char *expansion;
+  int result=history_expand((char *)line.c_str(), &expansion);
+  if (result) std::cerr << expansion << std::endl;
+  if (result < 0 || result == 2) {
+    delete expansion;
+    return false;
+  }
+
+  add_history(expansion);
+  line=expansion;
+  delete expansion;
+#endif
+  return true;
+}
+
 #define trc std::cout << __LINE__ << std::endl;
 bool interp () {
   arg_sel=false;
@@ -312,20 +335,20 @@ bool interp () {
   std::string::size_type pos;
   bool found_cmd;
 
-  no_quit=true;
+  interp_done=false;
   read_history(".tabsh_history");
-  //while (no_quit && std::getline(std::cin, ln)) {
-  while (rdlnpp(std::to_string(idx)+" >", ln)) {
-    trim(ln);
+  while (!interp_done) {
+    if (!rdlnpp(std::to_string(idx)+" >", ln)) break;
+    if (ln != "" && !expand(ln)) continue;
 
     if (ln.ends_with("#EOF")) {
       ln.erase(ln.end()-4, ln.end());
-      no_quit=false;
+      interp_done=true;
     }
 
-    // Cas particulier du ! qui n'a pas forcément besoin d'espace après ses paramétres
-    if (ln[0] == '#') {
-      cmd="!";
+    // Cas particulier du : qui n'a pas forcément besoin d'espace après ses paramétres
+    if (ln[0] == ':') {
+      cmd=":";
       param=ln.substr(1);
       trim(param);
     } else {
@@ -360,8 +383,6 @@ bool interp () {
         std::cout << std::endl;
       }
     }
-
-    if (!no_quit) break;
   }
 
   write_history(".tabsh_history");
