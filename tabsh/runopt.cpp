@@ -382,7 +382,11 @@ int int_width(int n) {
 
 void dispHisto(char , std::string , std::string ) {
   HIST_ENTRY **h=history_list();
+#ifdef _MSC_VER
   int l=history_length();
+#else
+  int l=history_length;
+#endif
   int w=int_width(l);
 
   for(int i=0; i < l; i++) {
