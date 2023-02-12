@@ -20,6 +20,7 @@ bool string_to_bool(std::string s);
 char string_to_ascii(std::string s);
 bool any_of_ctype(const std::string, std::function<int(int)>);
 bool all_of_ctype(const std::string, std::function<int(int)>);
+std::string getBuild();
 
 #endif // UTIL_H
 

@@ -77,17 +77,6 @@ std::string parse_vt(char c, std::string s) {
   return s;
 }
 
-
-bool rdlnpp(std::string prompt, std::string& line) {
-  char *_line=readline(prompt.c_str());
-  if (_line) {
-    line=_line;
-    return true;
-  }
-
-  return false;
-}
-
 // name, has_arg, val, help
 // has_arg : no_argument (ou 0), si l'option ne prend pas d'argument, required_argument (ou 1) si l'option prend un argument, ou optional_argument (ou 2) si l'option prend un argument optionnel.
 size_t n_opt=0, longest_opname=0;
@@ -132,54 +121,6 @@ char val_from_name (std::string n) {
 
   return '\0';
 }
-
-// From Freak, see : https://stackoverflow.com/questions/152016/detecting-cpu-architecture-compile-time
-std::string getBuild() {
-  #if defined(__x86_64__) || defined(_M_X64)
-  return "x86_64";
-  #elif defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
-  return "x86_32";
-  #elif defined(__ARM_ARCH_2__)
-  return "ARM2";
-  #elif defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
-  return "ARM3";
-  #elif defined(__ARM_ARCH_4T__) || defined(__TARGET_ARM_4T)
-  return "ARM4T";
-  #elif defined(__ARM_ARCH_5_) || defined(__ARM_ARCH_5E_)
-  return "ARM5"
-  #elif defined(__ARM_ARCH_6T2_) || defined(__ARM_ARCH_6T2_)
-  return "ARM6T2";
-  #elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
-  return "ARM6";
-  #elif defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
-  return "ARM7";
-  #elif defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
-  return "ARM7A";
-  #elif defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
-  return "ARM7R";
-  #elif defined(__ARM_ARCH_7M__)
-  return "ARM7M";
-  #elif defined(__ARM_ARCH_7S__)
-  return "ARM7S";
-  #elif defined(__aarch64__) || defined(_M_ARM64)
-  return "ARM64";
-  #elif defined(mips) || defined(__mips__) || defined(__mips)
-  return "MIPS";
-  #elif defined(__sh__)
-  return "SUPERH";
-  #elif defined(__powerpc) || defined(__powerpc__) || defined(__powerpc64__) || defined(__POWERPC__) || defined(__ppc__) || defined(__PPC__) || defined(_ARCH_PPC)
-  return "POWERPC";
-  #elif defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
-  return "POWERPC64";
-  #elif defined(__sparc__) || defined(__sparc)
-  return "SPARC";
-  #elif defined(__m68k__)
-  return "M68K";
-  #else
-  return "UNKNOWN";
-  #endif
-}
-
 
 
 std::string progpath="";
@@ -301,25 +242,187 @@ void interp_quit (char, std::string, std::string) {
   interp_done=true;
 }
 
+int int_width(int n) {
+  int l=1;
+
+  while (n >= 10) {
+    n /= 10;
+    l++;
+  }
+
+  return l;
+}
+
+bool rdlnpp(std::string prompt, std::string& line) {
+  char *_line=readline(prompt.c_str());
+
+  if (_line) {
+    line=_line;
+    return true;
+  }
+
+  return false;
+}
+
+int histo_len() {
+#ifdef _MSC_VER
+  return history_length();
+#else
+  return history_length;
+#endif
+}
+
+HIST_ENTRY **get_histo(int& l) {
+  l=histo_len();
+  return history_list();
+}
+
+void dispHisto(char , std::string , std::string ) {
+  int l;
+  HIST_ENTRY **h=get_histo(l);
+  int w=int_width(l);
+
+  for(int i=0; i < l; i++) {
+    if (h[i]) std::cout << std::setw(w) << i+1 << ':' << h[i]->line << std::endl;
+  }
+}
+
+#ifdef _MSC_VER
+
+bool get_int(std::string s, int& n) {
+  trim(s);
+
+  int neg=1;
+
+  if (s[0] == '-') {
+    s=s.substr(1);
+    neg=-1;
+  }
+
+  if (all_of_ctype(s, isdigit)) {
+    n=neg*std::stoi(s);
+    return true;
+  }
+
+  return false;
+}
+
+// Recall cmd from history by its number from the end if < 0 or from the start
+std::string recall_cmd_by_num(int n) {
+  int l;
+  HIST_ENTRY **h=get_histo(l);
+  std::string s="";
+
+  // Rappel à partir de la fin
+  if (n < 0) s=h[l+n]->line;
+  // Rappel à partir du début
+  else s=h[n]->line;
+
+  return s;
+}
+
+#define trc std::cout << __LINE__ << ", SH " << sh << std::endl;
+// Recall cmd from history starting from end finding string corresponding to expr
+std::string recall_cmd_by_expr(std::string expr) {
+  int l;
+  HIST_ENTRY **h=get_histo(l);
+  std::string s="";
+
+  if (expr[0] == '?') {
+    expr.erase(0,1);
+    bool at_end=true;
+
+    if (expr.back() == '?') {
+      expr.pop_back();
+      at_end=false;
+    }
+
+    std::string sh;
+    while (--l) {
+      sh=h[l]->line;
+
+      if (at_end) {trc;
+        if (sh.ends_with(expr)) return sh;
+      } else {trc;
+        if (sh.find(expr) != std::string::npos) return sh;
+      }
+    }
+  } else {
+    std::string sh;
+    while (--l) {
+      sh=h[l]->line;
+      if (sh.starts_with(expr)) {
+        return sh;
+      }
+    }
+  }
+
+  return s;
+}
+
+std::string recall_cmd_by_subst(std::string subst) {
+  int l;
+  HIST_ENTRY **h=get_histo(l);
+
+  //if (subst.back() == '^') subst.pop_back();
+  auto v=split(subst, '^');
+  size_t p;
+  std::string sh="";
+
+  while (--l) {
+    sh=h[l]->line;
+    p=sh.find(v[0]);
+    if (p != std::string::npos) return sh.replace(p, v[0].size(), v[1]);
+  }
+
+  return "";
+}
+
+
+int history_expand(char *_hs, char **_out) {
+  std::string hs=_hs;
+  trim(hs);
+  if (hs[0] == '!')  {
+    hs.erase(0, 1);
+    int n;
+    if (get_int(hs, n)) { // Rappel de commande numérique
+      hs=recall_cmd_by_num(n);
+    } else { // Rappel de commande par chaine
+      // !! <=> !-1
+      if (hs[0] == '!') hs=recall_cmd_by_num(-1);
+      else hs=recall_cmd_by_expr(hs);
+    }
+  } if (hs[0] == '^')  {
+    hs.erase(0, 1);
+    hs=recall_cmd_by_subst(hs);
+  }
+
+  *_out=_strdup(hs.c_str());
+  if (hs == "") return 1;
+  return 0;
+}
+#endif
+
 bool expand(std::string& line) {
   trim(line);
-#ifndef _MSC_VER
   char *expansion;
   int result=history_expand((char *)line.c_str(), &expansion);
-  if (result) std::cerr << expansion << std::endl;
+
+  if (result) std::cerr << "Bad expansion [" << line << "] gives [" << expansion << ']' << std::endl;
+
   if (result < 0 || result == 2) {
     delete expansion;
     return false;
   }
 
-  add_history(expansion);
+  //add_history(expansion);
+  if (line != expansion && expansion != "")
+    std::cout << '[' << line << "] expanded to [" << expansion << ']' << std::endl;
   line=expansion;
   delete expansion;
-#endif
   return true;
 }
 
-#define trc std::cout << __LINE__ << std::endl;
 bool interp () {
   arg_sel=false;
   if (!interp_on) return false;
@@ -339,13 +442,19 @@ bool interp () {
   read_history(".tabsh_history");
   while (!interp_done) {
     if (!rdlnpp(std::to_string(idx)+" >", ln)) break;
+    trim(ln);
     if (ln != "" && !expand(ln)) continue;
 
     if (ln.ends_with("#EOF")) {
-      ln.erase(ln.end()-4, ln.end());
+      ln.erase(ln.size()-4);
       interp_done=true;
     }
-
+/*
+    if (ln == "#EOF") {
+      ln="";
+      interp_done=true;
+    }
+*/
     // Cas particulier du : qui n'a pas forcément besoin d'espace après ses paramétres
     if (ln[0] == ':') {
       cmd=":";
@@ -388,31 +497,6 @@ bool interp () {
   write_history(".tabsh_history");
 
   return true;
-}
-
-int int_width(int n) {
-  int l=1;
-
-  while (n >= 10) {
-    n /= 10;
-    l++;
-  }
-
-  return l;
-}
-
-void dispHisto(char , std::string , std::string ) {
-  HIST_ENTRY **h=history_list();
-#ifdef _MSC_VER
-  int l=history_length();
-#else
-  int l=history_length;
-#endif
-  int w=int_width(l);
-
-  for(int i=0; i < l; i++) {
-    if (h[i]) std::cout << std::setw(w) << i << ':' << h[i]->line << std::endl;
-  }
 }
 
 int getopt_init(int argc, char **argv, opt_list pOptions, const std::string pIntro, const std::string pVersion, const std::string pCopyright) {
